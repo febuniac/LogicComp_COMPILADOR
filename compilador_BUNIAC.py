@@ -80,7 +80,7 @@ class Analisador:
                     Analisador.tokens.selecionarProximo()
 
                     if (Analisador.tokens.atual.tipo == INT):
-                        resultado+=Analisador.tokens.atual.valor
+                        resultado-=Analisador.tokens.atual.valor
                 else:
                     raise Exception("Token não esperado:Deveria ser operador e veio número")
                 Analisador.tokens.selecionarProximo()
