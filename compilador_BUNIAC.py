@@ -4,8 +4,11 @@
 INT = "INT"
 PLUS = "PLUS"
 MINUS = "MINUS"
+MULT = "MULT"
+DIV = "DIV"
 EOF = "EOF" #end of file
-ERROR ="ERRO"
+
+
 
 #Classe Token
 
@@ -32,25 +35,54 @@ class Tokenizador:
         if self.posicao >= len(self.origem):#checa o tamanho da string de entrada
             token = Token(EOF,'null')#Para o fim da string
             self.atual=token#atualiza o atual
-
-        elif (self.origem[self.posicao]).isdigit():#se for digito
-            while (self.posicao<(len(self.origem)) and (self.origem[self.posicao]).isdigit()):
-                digito +=self.origem[self.posicao]
+        else:
+            #Tratando comentários
+            if ((self.origem[self.posicao])=="/"): #(p and q) ao negar (not p or not q) # era antes :  if ((self.origem[self.posicao])=="/" and (self.origem[self.posicao])=="*")
                 self.posicao+=1
+                #remover
+                if (self.origem[self.posicao])=="*":
+                    self.posicao+=1
+                    #self.posicao+=2
+                    comentario = True #flag de comentarios
+                    while (comentario):
+                        while (self.origem[self.posicao]!="*"): # era antes :  while not (self.origem[self.posicao]=="*" and self.origem[self.posicao+1]=="/"):
+                            self.posicao+=1
+                            if(self.posicao >= len(self.origem)):
+                                raise Exception("Erro:Comentário sem fim")
+                        self.posicao+=1
+                        if(self.origem[self.posicao]=="/"):
+                            comentario = False    
+                            self.posicao+=1
+                else:
+                    token = Token(DIV,"/")
+                    self.posicao+=2
+                    self.atual=token
+                    return
 
-            token = Token(INT,int(digito))
-            self.atual=token
+            if (self.origem[self.posicao]).isdigit():#se for digito
+                # print(self.origem[self.posicao])
+                while (self.posicao<(len(self.origem)) and (self.origem[self.posicao]).isdigit()):
+                    # print(self.origem[self.posicao])
+                    digito +=self.origem[self.posicao]
+                    self.posicao+=1
 
-        elif self.origem[self.posicao] == '+':
-            token = Token(PLUS,"+")
-            self.posicao+=1
-            self.atual=token
+                token = Token(INT,int(digito))
+                self.atual=token
 
-        elif self.origem[self.posicao] == '-':
-            token = Token(MINUS,"-")
-            self.posicao+=1
-            self.atual=token
+            elif self.origem[self.posicao] == '+':
+                token = Token(PLUS,"+")
+                self.posicao+=1
+                self.atual=token
 
+            elif self.origem[self.posicao] == '-':
+                token = Token(MINUS,"-")
+                self.posicao+=1
+                self.atual=token
+
+            elif self.origem[self.posicao] == '*':
+                token = Token(MULT,"*")
+                self.posicao+=1
+                self.atual=token
 
 
 #Classe Analisador(estática)
@@ -61,26 +93,54 @@ class Analisador:
     def inicializar(texto):
         Analisador.tokens = Tokenizador(texto)#inicializa o atributo Tokenizador dentro da classe Analisador(classe estatica por isso é necessário)
 
+
     def analisarExpressao():
-        resultado = 0
-        Analisador.tokens.selecionarProximo()#first
-        if Analisador.tokens.atual.tipo == INT:
-            resultado = Analisador.tokens.atual.valor
-            Analisador.tokens.selecionarProximo()
+        resultado = Analisador.analisarTermo()
 
-            while (Analisador.tokens.atual.tipo != EOF):
+        while (Analisador.tokens.atual.tipo == PLUS or Analisador.tokens.atual.tipo == MINUS):
+        #while (Analisador.tokens.atual.tipo != EOF):
 
-                if (Analisador.tokens.atual.tipo == PLUS):
-                    Analisador.tokens.selecionarProximo()
+            if (Analisador.tokens.atual.tipo == PLUS):
+                Analisador.tokens.selecionarProximo()
 
                 if (Analisador.tokens.atual.tipo == INT):
                     resultado+=Analisador.tokens.atual.valor
 
-                elif (Analisador.tokens.atual.tipo == MINUS):
+            elif (Analisador.tokens.atual.tipo == MINUS):
+                Analisador.tokens.selecionarProximo()
+
+                if (Analisador.tokens.atual.tipo == INT):
+                    resultado-=Analisador.tokens.atual.valor
+            else:
+                raise Exception("Token não esperado:Deveria ser operador e veio número")
+            
+            Analisador.tokens.selecionarProximo()
+
+        return resultado
+
+    def analisarTermo():
+        resultado = 0
+        Analisador.tokens.selecionarProximo()#first
+        #print(Analisador.tokens.atual.valor)
+        if Analisador.tokens.atual.tipo == INT:
+            resultado = Analisador.tokens.atual.valor
+            Analisador.tokens.selecionarProximo()
+
+            while (Analisador.tokens.atual.tipo == MULT or Analisador.tokens.atual.tipo == DIV):
+
+                if (Analisador.tokens.atual.tipo == MULT):
+                    Analisador.tokens.selecionarProximo()
+
+
+                if (Analisador.tokens.atual.tipo == INT):
+                    resultado*=Analisador.tokens.atual.valor
+
+
+                elif (Analisador.tokens.atual.tipo == DIV):
                     Analisador.tokens.selecionarProximo()
 
                     if (Analisador.tokens.atual.tipo == INT):
-                        resultado-=Analisador.tokens.atual.valor
+                        resultado//=Analisador.tokens.atual.valor
                 else:
                     raise Exception("Token não esperado:Deveria ser operador e veio número")
                 Analisador.tokens.selecionarProximo()
@@ -90,7 +150,11 @@ class Analisador:
 
 def main():
     try:
-        x = "1+      2+40+83"
+        x = "1+2-3/*"
+        #11 11 + 2 (teste não funciona)
+        #" /* bla */ 1 /* bla */" (teste não funciona)
+        #" 11+22-33 /*" (teste não funciona)
+        
         Analisador.inicializar(x)
         print(Analisador.analisarExpressao())
 
@@ -99,3 +163,5 @@ def main():
 
 if __name__== "__main__":
     main()
+
+
