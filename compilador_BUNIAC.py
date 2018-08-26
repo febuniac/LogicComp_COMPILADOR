@@ -55,7 +55,7 @@ class Tokenizador:
                             self.posicao+=1
                 else:
                     token = Token(DIV,"/")
-                    self.posicao+=2
+                    # self.posicao+=1
                     self.atual=token
                     return
 
@@ -150,10 +150,9 @@ class Analisador:
 
 def main():
     try:
-        x = "1+2-3/*"
+        x = "11+22-33 /* "
         #11 11 + 2 (teste não funciona)
         #" /* bla */ 1 /* bla */" (teste não funciona)
-        #" 11+22-33 /*" (teste não funciona)
         
         Analisador.inicializar(x)
         print(Analisador.analisarExpressao())
