@@ -38,7 +38,7 @@ class Tokenizador:
         else:
             #Tratando comentários
             if ((self.origem[self.posicao])=="/"): #(p and q) ao negar (not p or not q) # era antes :  if ((self.origem[self.posicao])=="/" and (self.origem[self.posicao])=="*")
-                self.posicao+=1\
+                self.posicao+=1
                 if (self.origem[self.posicao])=="*":
                     self.posicao+=1
                     comentario = True #flag de comentarios
@@ -55,8 +55,14 @@ class Tokenizador:
                     token = Token(DIV,"/")
                     self.atual=token
                     return
-
-            if (self.origem[self.posicao]).isdigit():#se for digito
+            while self.posicao < len(self.origem) and (self.origem[self.posicao] == " "):#limpando os espaços
+                self.posicao+=1#atualiza a posição
+                if re.search('[0-9] +[0-9]', entrada):
+                    raise Exception("Erro: Digito seguido de digito")
+            if self.posicao >= len(self.origem):#checa o tamanho da string de entrada
+                token = Token(EOF,'null')#Para o fim da string
+                self.atual=token#atualiza o atual
+            elif (self.origem[self.posicao]).isdigit():#se for digito
                 # print(self.origem[self.posicao])
                 while (self.posicao<(len(self.origem)) and (self.origem[self.posicao]).isdigit()):
                     # print(self.origem[self.posicao])
@@ -80,12 +86,6 @@ class Tokenizador:
                 token = Token(MULT,"*")
                 self.posicao+=1
                 self.atual=token
-            
-            # elif self.origem[self.posicao] == '/':
-            #     token = Token(DIV,"/")
-            #     self.posicao+=1
-            #     self.atual=token
-
 
 #Classe Analisador(estática)
 #tokens (Tokenizador-ler código fonte e alimentar o Analisador)
@@ -134,8 +134,10 @@ class Analisador:
                     Analisador.tokens.selecionarProximo()
 
 
-                if (Analisador.tokens.atual.tipo == INT):
-                    resultado*=Analisador.tokens.atual.valor
+                    if (Analisador.tokens.atual.tipo == INT):
+                        resultado*=Analisador.tokens.atual.valor
+                    else:
+                        raise Exception("Erro: Token não esperado:Deveria ser operador e veio número")
 
 
                 elif (Analisador.tokens.atual.tipo == DIV):
@@ -143,8 +145,8 @@ class Analisador:
 
                     if (Analisador.tokens.atual.tipo == INT):
                         resultado//=Analisador.tokens.atual.valor
-                else:
-                    raise Exception("Erro: Token não esperado:Deveria ser operador e veio número")
+                    else:
+                        raise Exception("Erro: Token não esperado:Deveria ser operador e veio número")
                 Analisador.tokens.selecionarProximo()
         # elif (comentario ==True):
         #     pass
