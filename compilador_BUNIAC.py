@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import re #importing regular expression
 #os três tipos que um token pode ter (constantes)
 INT = "INT"
 PLUS = "PLUS"
@@ -7,8 +8,7 @@ MINUS = "MINUS"
 MULT = "MULT"
 DIV = "DIV"
 EOF = "EOF" #end of file
-
-
+entrada = (str(input("Conta: ")))#entrada do usuário
 
 #Classe Token
 
@@ -27,35 +27,32 @@ class Tokenizador:
     #lê o próximo token e atualiza o atributo atual
     def selecionarProximo(self):
         digito =""#Para numeros com mais de 1 digito
-
         #sempre aqui pois pega um token de cada vez
         while self.posicao < len(self.origem) and (self.origem[self.posicao] == " "):#limpando os espaços
             self.posicao+=1#atualiza a posição
-
+            if re.search('[0-9] +[0-9]', entrada):
+                raise Exception("Erro: Digito seguido de digito")
         if self.posicao >= len(self.origem):#checa o tamanho da string de entrada
             token = Token(EOF,'null')#Para o fim da string
             self.atual=token#atualiza o atual
         else:
             #Tratando comentários
             if ((self.origem[self.posicao])=="/"): #(p and q) ao negar (not p or not q) # era antes :  if ((self.origem[self.posicao])=="/" and (self.origem[self.posicao])=="*")
-                self.posicao+=1
-                #remover
+                self.posicao+=1\
                 if (self.origem[self.posicao])=="*":
                     self.posicao+=1
-                    #self.posicao+=2
                     comentario = True #flag de comentarios
                     while (comentario):
                         while (self.origem[self.posicao]!="*"): # era antes :  while not (self.origem[self.posicao]=="*" and self.origem[self.posicao+1]=="/"):
                             self.posicao+=1
                             if(self.posicao >= len(self.origem)):
-                                raise Exception("Erro:Comentário sem fim")
+                                raise Exception("Erro: Comentário sem fim")
                         self.posicao+=1
                         if(self.origem[self.posicao]=="/"):
                             comentario = False    
                             self.posicao+=1
                 else:
                     token = Token(DIV,"/")
-                    # self.posicao+=1
                     self.atual=token
                     return
 
@@ -83,6 +80,11 @@ class Tokenizador:
                 token = Token(MULT,"*")
                 self.posicao+=1
                 self.atual=token
+            
+            # elif self.origem[self.posicao] == '/':
+            #     token = Token(DIV,"/")
+            #     self.posicao+=1
+            #     self.atual=token
 
 
 #Classe Analisador(estática)
@@ -112,7 +114,7 @@ class Analisador:
                 if (Analisador.tokens.atual.tipo == INT):
                     resultado-=Analisador.tokens.atual.valor
             else:
-                raise Exception("Token não esperado:Deveria ser operador e veio número")
+                raise Exception("Erro: Token não esperado:Deveria ser operador e veio número")
             
             Analisador.tokens.selecionarProximo()
 
@@ -142,20 +144,21 @@ class Analisador:
                     if (Analisador.tokens.atual.tipo == INT):
                         resultado//=Analisador.tokens.atual.valor
                 else:
-                    raise Exception("Token não esperado:Deveria ser operador e veio número")
+                    raise Exception("Erro: Token não esperado:Deveria ser operador e veio número")
                 Analisador.tokens.selecionarProximo()
+        # elif (comentario ==True):
+        #     pass
         else:
-            raise Exception("Token não esperado:Deveria ser numero e veio algo diferente")
+            raise Exception("Erro: Token não esperado:Deveria ser numero e veio algo diferente")
         return resultado
 
 def main():
     try:
-        x = "11+22-33 /* "
-        #11 11 + 2 (teste não funciona)
+        # entrada = (str(input("Conta: ")))
         #" /* bla */ 1 /* bla */" (teste não funciona)
-        
-        Analisador.inicializar(x)
-        print(Analisador.analisarExpressao())
+        #  1  /*bla*/  - 2 (teste não funciona)
+        Analisador.inicializar(entrada)
+        print("Resultado:",Analisador.analisarExpressao())
 
     except Exception as erro:
         print(erro)
