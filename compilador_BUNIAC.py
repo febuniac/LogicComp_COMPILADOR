@@ -8,6 +8,8 @@ MINUS = "MINUS"
 MULT = "MULT"
 DIV = "DIV"
 EOF = "EOF" #end of file
+OPEN_PAR = "OPEN_PAR"
+CLOSE_PAR = "CLOSE_PAR"
 entrada = (str(input("Conta: ")))#entrada do usuário
 
 #Classe Token
@@ -86,6 +88,16 @@ class Tokenizador:
                 token = Token(MULT,"*")
                 self.posicao+=1
                 self.atual=token
+           
+            elif self.origem[self.posicao] == '(':
+                token = Token(OPEN_PAR,"")
+                self.posicao+=1
+                self.atual=token
+            
+            elif self.origem[self.posicao] == ')':
+                token = Token(CLOSE_PAR,"")
+                self.posicao+=1
+                self.atual=token
 
 #Classe Analisador(estática)
 #tokens (Tokenizador-ler código fonte e alimentar o Analisador)
@@ -94,7 +106,7 @@ class Analisador:
     #consome tokens do Tokenizador e análisa se a sintaxe está aderente à grámatica proposta
     def inicializar(texto):
         Analisador.tokens = Tokenizador(texto)#inicializa o atributo Tokenizador dentro da classe Analisador(classe estatica por isso é necessário)
-
+        Analisador.tokens.selecionarProximo()
 
     def analisarExpressao():
         resultado = Analisador.analisarTermo()
@@ -104,61 +116,54 @@ class Analisador:
 
             if (Analisador.tokens.atual.tipo == PLUS):
                 Analisador.tokens.selecionarProximo()
-
-                if (Analisador.tokens.atual.tipo == INT):
-                    resultado+=Analisador.tokens.atual.valor
+                resultado+=Analisador.analisarTermo()
 
             elif (Analisador.tokens.atual.tipo == MINUS):
                 Analisador.tokens.selecionarProximo()
-
-                if (Analisador.tokens.atual.tipo == INT):
-                    resultado-=Analisador.tokens.atual.valor
-            else:
-                raise Exception("Erro: Token não esperado:Deveria ser operador e veio número")
-            
-            Analisador.tokens.selecionarProximo()
-
+                resultado-=Analisador.analisarTermo()
         return resultado
 
     def analisarTermo():
+        resultado = Analisador.analisarFator()
+
+        while (Analisador.tokens.atual.tipo == MULT or Analisador.tokens.atual.tipo == DIV):
+            if (Analisador.tokens.atual.tipo == MULT):
+                Analisador.tokens.selecionarProximo()
+                resultado*=Analisador.analisarFator()
+
+            elif (Analisador.tokens.atual.tipo == DIV):
+                Analisador.tokens.selecionarProximo()
+                resultado//=Analisador.analisarFator()
+        return resultado
+    
+    def analisarFator():
         resultado = 0
-        Analisador.tokens.selecionarProximo()#first
-        #print(Analisador.tokens.atual.valor)
         if Analisador.tokens.atual.tipo == INT:
             resultado = Analisador.tokens.atual.valor
             Analisador.tokens.selecionarProximo()
 
-            while (Analisador.tokens.atual.tipo == MULT or Analisador.tokens.atual.tipo == DIV):
-
-                if (Analisador.tokens.atual.tipo == MULT):
-                    Analisador.tokens.selecionarProximo()
-
-
-                    if (Analisador.tokens.atual.tipo == INT):
-                        resultado*=Analisador.tokens.atual.valor
-                    else:
-                        raise Exception("Erro: Token não esperado:Deveria ser operador e veio número")
-
-
-                elif (Analisador.tokens.atual.tipo == DIV):
-                    Analisador.tokens.selecionarProximo()
-
-                    if (Analisador.tokens.atual.tipo == INT):
-                        resultado//=Analisador.tokens.atual.valor
-                    else:
-                        raise Exception("Erro: Token não esperado:Deveria ser operador e veio número")
-                Analisador.tokens.selecionarProximo()
-        # elif (comentario ==True):
-        #     pass
+        elif (Analisador.tokens.atual.tipo == PLUS):#Este plus é unário ( é um sinal de +)
+            Analisador.tokens.selecionarProximo()
+            resultado=Analisador.analisarFator() # 1* Analisador.analisarFator()
+        
+        elif (Analisador.tokens.atual.tipo == MINUS):#Este minus é unário ( é um sinal de - ex: -2+1= -1)
+            Analisador.tokens.selecionarProximo()
+            resultado=-Analisador.analisarFator() # -1 *Analisador.analisarFator()
+    
+        elif (Analisador.tokens.atual.tipo == OPEN_PAR):
+           Analisador.tokens.selecionarProximo()
+           resultado = Analisador.analisarExpressao()
+           if (Analisador.tokens.atual.tipo == CLOSE_PAR):
+               Analisador.tokens.selecionarProximo()
+           else:
+                raise Exception("Erro: Parentesês não fecha") 
         else:
-            raise Exception("Erro: Token não esperado:Deveria ser numero e veio algo diferente")
+             raise Exception("Erro: Expressão inválida")
         return resultado
+
 
 def main():
     try:
-        # entrada = (str(input("Conta: ")))
-        #" /* bla */ 1 /* bla */" (teste não funciona)
-        #  1  /*bla*/  - 2 (teste não funciona)
         Analisador.inicializar(entrada)
         print("Resultado:",Analisador.analisarExpressao())
 
