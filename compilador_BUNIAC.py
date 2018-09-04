@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import re #importing regular expression
-#os três tipos que um token pode ter (constantes)
+#Tipos de Token (constantes)
 INT = "INT"
 PLUS = "PLUS"
 MINUS = "MINUS"
@@ -12,12 +12,56 @@ OPEN_PAR = "OPEN_PAR"
 CLOSE_PAR = "CLOSE_PAR"
 entrada = (str(input("Conta: ")))#entrada do usuário
 
-#Classe Token
+class Node:
+    # Constructor to create a new Node
+    def __init__(self,valor,children):
+        self.valor = valor
+        self.children = children
+    def Evaluate(self):
+        pass
 
+class BinOp(Node):#Binary Operation
+    def __init__(self,valor,children):
+        self.valor = valor
+        self.children = children
+    def Evaluate(self):
+        val_esq=self.children[0].Evaluate()
+        val_dir=self.children[1].Evaluate()
+        if (self.valor == 'PLUS'):
+            return val_esq + val_dir
+        elif (self.valor == 'MINUS'):
+            return val_esq - val_dir
+        elif (self.valor == 'MULT'):
+            return val_esq * val_dir
+        elif (self.valor == 'DIV'):
+            return val_esq // val_dir
+
+class UnOp(Node):#Unary Operation
+    def __init__(self,valor,children):
+        self.valor = valor
+        self.children = children
+    def Evaluate(self):
+        val_unico=self.children[0].Evaluate()
+        if (self.valor == 'PLUS'):
+            return +val_unico
+        elif (self.valor == 'MINUS'):
+            return -val_unico
+
+class IntVal(Node):#Integer Value
+    def __init__(self,valor):
+        self.valor = valor
+    def Evaluate(self):
+        return self.valor
+
+class NoOp(Node):#No Operation
+    def Evaluate(self):
+        return None
+
+#Class Token
 class Token:
     def __init__(self,tipo,valor):
-        self.tipo=tipo#tipo (string-tipo do token);
-        self.valor=valor#valor (integer-valor do token);
+        self.tipo=tipo#tipo (string-token type);
+        self.valor=valor#valor (integer-token value);
 
 #Classe Tokenizador
 
@@ -112,44 +156,30 @@ class Analisador:
         resultado = Analisador.analisarTermo()
 
         while (Analisador.tokens.atual.tipo == PLUS or Analisador.tokens.atual.tipo == MINUS):
-        #while (Analisador.tokens.atual.tipo != EOF):
-
-            if (Analisador.tokens.atual.tipo == PLUS):
-                Analisador.tokens.selecionarProximo()
-                resultado+=Analisador.analisarTermo()
-
-            elif (Analisador.tokens.atual.tipo == MINUS):
-                Analisador.tokens.selecionarProximo()
-                resultado-=Analisador.analisarTermo()
+            op = Analisador.tokens.atual.tipo
+            Analisador.tokens.selecionarProximo()
+            resultado = BinOp(op,[resultado, Analisador.analisarTermo()])
         return resultado
 
     def analisarTermo():
         resultado = Analisador.analisarFator()
-
         while (Analisador.tokens.atual.tipo == MULT or Analisador.tokens.atual.tipo == DIV):
-            if (Analisador.tokens.atual.tipo == MULT):
-                Analisador.tokens.selecionarProximo()
-                resultado*=Analisador.analisarFator()
-
-            elif (Analisador.tokens.atual.tipo == DIV):
-                Analisador.tokens.selecionarProximo()
-                resultado//=Analisador.analisarFator()
+            op = Analisador.tokens.atual.tipo
+            Analisador.tokens.selecionarProximo()
+            resultado = BinOp(op,[resultado, Analisador.analisarFator()])
         return resultado
-    
+
     def analisarFator():
         resultado = 0
         if Analisador.tokens.atual.tipo == INT:
-            resultado = Analisador.tokens.atual.valor
+            resultado = IntVal(Analisador.tokens.atual.valor)
             Analisador.tokens.selecionarProximo()
 
-        elif (Analisador.tokens.atual.tipo == PLUS):#Este plus é unário ( é um sinal de +)
+        elif (Analisador.tokens.atual.tipo == PLUS or Analisador.tokens.atual.tipo == MINUS):#Plus e Minus unários ( sinais positivo e negativo)
+            op = Analisador.tokens.atual.tipo
             Analisador.tokens.selecionarProximo()
-            resultado=Analisador.analisarFator() # 1* Analisador.analisarFator()
-        
-        elif (Analisador.tokens.atual.tipo == MINUS):#Este minus é unário ( é um sinal de - ex: -2+1= -1)
-            Analisador.tokens.selecionarProximo()
-            resultado=-Analisador.analisarFator() # -1 *Analisador.analisarFator()
-    
+            resultado = UnOp(op,[Analisador.analisarFator()])
+
         elif (Analisador.tokens.atual.tipo == OPEN_PAR):
            Analisador.tokens.selecionarProximo()
            resultado = Analisador.analisarExpressao()
@@ -165,7 +195,8 @@ class Analisador:
 def main():
     try:
         Analisador.inicializar(entrada)
-        print("Resultado:",Analisador.analisarExpressao())
+        raiz = Analisador.analisarExpressao()
+        print("Resultado:",raiz.Evaluate())
 
     except Exception as erro:
         print(erro)
