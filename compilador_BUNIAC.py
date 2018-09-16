@@ -10,8 +10,23 @@ DIV = "DIV"
 EOF = "EOF" #end of file
 OPEN_PAR = "OPEN_PAR"
 CLOSE_PAR = "CLOSE_PAR"
+OPEN_KEY = "OPEN_KEY"
+CLOSE_KEY = "CLOSE_KEY"
+ASSIGN = "ASSIGN"
+PRINTF ="PRINTF"
+IDENTIFIER = "IDENTIFIER"
+SEMICOLON ="SEMICOLON"
 entrada = (str(input("Conta: ")))#entrada do usuário
 
+
+class SymbolTable:
+    def __init__(self,dictionary):
+        dictionary = {}
+    def get_nome(self,nome):
+        return self.nome
+    def set_nome_valor(self,nome,valor):
+        self.nome = valor
+SymbolTable = SymbolTable({})
 class Node:
     # Constructor to create a new Node
     def __init__(self,valor,children):
@@ -20,6 +35,32 @@ class Node:
     def Evaluate(self):
         pass
 
+class Identifier(Node):#Identificador
+    def __init__(self,nome,valor):#
+        self.nome = nome
+        self.valor = IDENTIFIER #valor do nó
+    def Evaluate(self):
+        #global SymbolTable
+        return SymbolTable.get_nome(self.nome)#get do nome na symbol table
+
+class Assign(Node):#Assign Operation
+    def __init__(self,valor,children):
+        self.valor = valor
+        self.children = children
+    def Evaluate(self):
+        #gravando na symboltable o valor da atribuição
+        SymbolTable.set_nome_valor(self.children[0].valor,self.children[1].Evaluate())#valor dó nó é o nome da variavel 
+
+
+class Comandos(Node):#Comandos Operation
+    def __init__(self,valor,children):
+        self.valor = valor
+        self.children = children
+    def Evaluate(self):
+        for child in self.children:
+            child.Evaluate()#child percorre a lista de children e vai dando evaluate
+        
+        
 class BinOp(Node):#Binary Operation
     def __init__(self,valor,children):
         self.valor = valor
@@ -27,7 +68,7 @@ class BinOp(Node):#Binary Operation
     def Evaluate(self):
         val_esq=self.children[0].Evaluate()
         val_dir=self.children[1].Evaluate()
-        if (self.valor == 'PLUS'):
+        if(self.valor == 'PLUS'):
             return val_esq + val_dir
         elif (self.valor == 'MINUS'):
             return val_esq - val_dir
@@ -187,10 +228,72 @@ class Analisador:
                Analisador.tokens.selecionarProximo()
            else:
                 raise Exception("Erro: Parentesês não fecha") 
+        elif (Analisador.tokens.atual.tipo == IDENTIFIER):
+            Analisador.tokens.selecionarProximo()
         else:
              raise Exception("Erro: Expressão inválida")
         return resultado
+    def analisarPrintf():
+        resultado =0
+        if (Analisador.tokens.atual.tipo == PRINTF):#Printf
+            Analisador.tokens.selecionarProximo()
+            if (Analisador.tokens.atual.tipo == OPEN_PAR):
+                Analisador.tokens.selecionarProximo()
+                resultado = Analisador.analisarExpressao()
+                Analisador.tokens.selecionarProximo()
+            else:
+                raise Exception("printf incorreto")
+                if (Analisador.tokens.atual.tipo == CLOSE_PAR):
+                    Analisador.tokens.selecionarProximo()
+                else:
+                    raise Exception("Erro: Parentesês não fecha")
+        else:
+            raise Exception("Erro: Expressão inválida")
+        return resultado    
+    def analisarAtribuicao():
+        resultado=0
+        if (Analisador.tokens.atual.tipo == IDENTIFIER):#Atribuição
+             Analisador.tokens.selecionarProximo()
+             if(Analisador.tokens.atual.tipo == ASSIGN):#=
+                op = Analisador.tokens.atual.tipo
+                Analisador.tokens.selecionarProximo()
+                resultado = Assign(op,[resultado, Analisador.analisarExpressao()])
+             else:
+                raise Exception("Erro: Atribuição inválida")
+        return resultado
+    def analisarComando():
+        resultado=0
+        Analisador.tokens.selecionarProximo()
+        if (Analisador.tokens.atual.tipo == OPEN_KEY):#{
+            resultado = Analisador.analisarComando()
+        elif (Analisador.tokens.atual.tipo == IDENTIFIER):#id
+            resultado = Analisador.analisarAtribuicao()
+        elif (Analisador.tokens.atual.tipo == PRINTF):#id
+            resultado = Analisador.analisarPrintf()
+        return resultado
+        #* 3 possibilidades Comandos; Atribuição; Printf*#      
 
+        
+    def analisarComandos():
+        resultado = 0
+        if (Analisador.tokens.atual.tipo == OPEN_KEY):#{
+            Analisador.tokens.selecionarProximo()
+            resultado = Analisador.analisarComando()
+            Analisador.tokens.selecionarProximo()
+            if (Analisador.tokens.atual.tipo == SEMICOLON):#;;
+                Analisador.tokens.selecionarProximo()
+            else:
+                raise Exception("Erro: Comando Incorreto") 
+
+            while (Analisador.tokens.atual.tipo != CLOSE_KEY):
+                resultado = Analisador.analisarComando()
+                if (Analisador.tokens.atual.tipo == CLOSE_KEY):#}
+                    Analisador.tokens.selecionarProximo()
+                else:
+                    raise Exception("Erro: Formato de comando incorreto")        
+        return resultado
+
+             
 
 def main():
     try:
