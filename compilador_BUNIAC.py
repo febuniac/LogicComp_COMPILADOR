@@ -204,6 +204,26 @@ class Tokenizador:
                 token = Token(CLOSE_PAR,"")
                 self.posicao+=1
                 self.atual=token
+            
+            elif self.origem[self.posicao] == '{':
+                token = Token(OPEN_KEY,"")
+                self.posicao+=1
+                self.atual=token
+            
+            elif self.origem[self.posicao] == '}':
+                token = Token(CLOSE_KEY,"")
+                self.posicao+=1
+                self.atual=token
+            
+            elif self.origem[self.posicao] == '=':
+                token = Token(ASSIGN,"")
+                self.posicao+=1
+                self.atual=token
+
+            elif self.origem[self.posicao] == ';':
+                token = Token(SEMICOLON,"")
+                self.posicao+=1
+                self.atual=token
 #___________________________________________________________________________________________________
 #Classe Analisador(estática)
 #tokens (Tokenizador-ler código fonte e alimentar o Analisador)
@@ -256,7 +276,7 @@ class Analisador:
 
         return resultado
     def analisarPrintf():
-        resultado =0
+        resultado = 0
         if (Analisador.tokens.atual.tipo == PRINTF):#Printf
             Analisador.tokens.selecionarProximo()
             if (Analisador.tokens.atual.tipo == OPEN_PAR):
@@ -329,7 +349,7 @@ class Analisador:
 def main():
     try:
         Analisador.inicializar(entrada)
-        raiz = Analisador.analisarExpressao()
+        raiz = Analisador.analisarComandos()
         print("Resultado:",raiz.Evaluate())
 
     except Exception as erro:
