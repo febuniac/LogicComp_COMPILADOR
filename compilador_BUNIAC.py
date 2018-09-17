@@ -43,6 +43,8 @@ class Identifier(Node):#Identificador
         #global SymbolTable
         return SymbolTable.get_nome(self.nome)#get do nome na symbol table
 
+
+
 class Assign(Node):#Assign Operation
     def __init__(self,valor,children):
         self.valor = valor
@@ -114,6 +116,7 @@ class Tokenizador:
     #lê o próximo token e atualiza o atributo atual
     def selecionarProximo(self):
         digito =""#Para numeros com mais de 1 digito
+        string=[]#Para palvras com mais de 1 char
         #sempre aqui pois pega um token de cada vez
         while self.posicao < len(self.origem) and (self.origem[self.posicao] == " "):#limpando os espaços
             self.posicao+=1#atualiza a posição
@@ -150,14 +153,27 @@ class Tokenizador:
                 token = Token(EOF,'null')#Para o fim da string
                 self.atual=token#atualiza o atual
             elif (self.origem[self.posicao]).isdigit():#se for digito
-                # print(self.origem[self.posicao])
+               
                 while (self.posicao<(len(self.origem)) and (self.origem[self.posicao]).isdigit()):
-                    # print(self.origem[self.posicao])
+                    
                     digito +=self.origem[self.posicao]
                     self.posicao+=1
 
                 token = Token(INT,int(digito))
                 self.atual=token
+
+            elif (self.origem[self.posicao]).isalpha():#se for string
+
+                while(self.origem[self.posicao].isalpha() or self.origem[self.posicao].isdigit() or self.origem[self.posicao] == "_"):
+                    string.append(self.origem[self.posicao])
+                    self.posicao+=1
+                
+                fullString = ''.join(map(str, string))#converte a lista de chars para uma string
+                if(fullString == "printf"):    
+                    token = Token('PRINTF', fullString)
+                else:
+                    token = Token('IDENTIFIER', fullString)
+                self.atual = token
 
             elif self.origem[self.posicao] == '+':
                 token = Token(PLUS,"+")
@@ -231,7 +247,8 @@ class Analisador:
         elif (Analisador.tokens.atual.tipo == IDENTIFIER):
             Analisador.tokens.selecionarProximo()
         else:
-             raise Exception("Erro: Expressão inválida")
+             raise Exception("Erro: Expressão inválida (fator)")
+
         return resultado
     def analisarPrintf():
         resultado =0
@@ -248,7 +265,7 @@ class Analisador:
                 else:
                     raise Exception("Erro: Parentesês não fecha")
         else:
-            raise Exception("Erro: Expressão inválida")
+            raise Exception("Erro: Expressão inválida (printf) ")
         return resultado    
     def analisarAtribuicao():
         resultado=0
@@ -259,8 +276,9 @@ class Analisador:
                 Analisador.tokens.selecionarProximo()
                 resultado = Assign(op,[resultado, Analisador.analisarExpressao()])
              else:
-                raise Exception("Erro: Atribuição inválida")
+                raise Exception("Erro: Atribuição inválida (atribuição)")
         return resultado
+   
     def analisarComando():
         resultado=0
         Analisador.tokens.selecionarProximo()
@@ -276,6 +294,7 @@ class Analisador:
         
     def analisarComandos():
         resultado = 0
+        lista_comandos = []
         if (Analisador.tokens.atual.tipo == OPEN_KEY):#{
             Analisador.tokens.selecionarProximo()
             resultado = Analisador.analisarComando()
@@ -287,13 +306,16 @@ class Analisador:
 
             while (Analisador.tokens.atual.tipo != CLOSE_KEY):
                 resultado = Analisador.analisarComando()
-                if (Analisador.tokens.atual.tipo == CLOSE_KEY):#}
+                if (resultado == None):
+                    break
+                lista_comandos.append(resultado)
+                if (Analisador.tokens.atual.tipo == SEMICOLON):#;
                     Analisador.tokens.selecionarProximo()
                 else:
-                    raise Exception("Erro: Formato de comando incorreto")        
+                    raise Exception("Erro: Formato de comando incorreto")   
+            if (Analisador.tokens.atual.tipo == CLOSE_KEY):#} 
+                return Comandos(None,lista_comandos)
         return resultado
-
-             
 
 def main():
     try:
