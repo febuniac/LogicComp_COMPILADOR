@@ -24,7 +24,7 @@ with open('inputCompiler.txt') as entrada:
   inputCompiler = entrada.read()
   inputCompiler = inputCompiler.replace("\n"," ")
   inputCompiler = inputCompiler.replace(" ","")
-  print(inputCompiler)
+  #print(inputCompiler)
 #[line.rstrip('\n') for line in entrada] #Strip line with list comprehension
 
   
@@ -53,7 +53,7 @@ class Node:
 class Identifier(Node):#Identificador
     def __init__(self,nome,valor):#
         self.nome = nome
-        self.valor = IDENTIFIER #valor do nó
+        self.valor = valor #valor do nó
     def Evaluate(self):
         #global SymbolTable
         return SymbolTable.get_nome(self.nome)#get do nome na symbol table
@@ -93,6 +93,13 @@ class BinOp(Node):#Binary Operation
             return val_esq * val_dir
         elif (self.valor == 'DIV'):
             return val_esq // val_dir
+
+class Printf(Node):
+    def __init__(self,valor,children):
+        self.valor = valor
+        self.children = children
+    def Evaluate(self):
+        print(self.children.Evaluate())
 
 class UnOp(Node):#Unary Operation
     def __init__(self,valor,children):
@@ -285,15 +292,15 @@ class Analisador:
 
         return resultado
     def analisarPrintf():
-        resultado = 0
+        #resultado = #--PREENCHER--#
         if (Analisador.tokens.atual.tipo == PRINTF):#Printf
             Analisador.tokens.selecionarProximo()
             if (Analisador.tokens.atual.tipo == OPEN_PAR):
                 Analisador.tokens.selecionarProximo()
                 resultado = Analisador.analisarExpressao()
-                Analisador.tokens.selecionarProximo()
                 if (Analisador.tokens.atual.tipo == CLOSE_PAR):
                     Analisador.tokens.selecionarProximo()
+                    resultado = Printf(PRINTF,resultado)
                 else:
                     raise Exception("Erro: Parentesês não fecha")
             else:
@@ -306,8 +313,9 @@ class Analisador:
             raise Exception("Erro: Expressão inválida (printf) ")
         return resultado    
     def analisarAtribuicao():
-        resultado=0
+        #resultado=#--PREENCHER--#
         if (Analisador.tokens.atual.tipo == IDENTIFIER):#Atribuição
+            resultado = Identifier(Analisador.tokens.atual.valor, Analisador.tokens.atual.tipo)
             Analisador.tokens.selecionarProximo()
             if(Analisador.tokens.atual.tipo == ASSIGN):#=
                 op = Analisador.tokens.atual.tipo
@@ -318,7 +326,7 @@ class Analisador:
         return resultado
    
     def analisarComando():
-        resultado=0
+        #resultado=#--PREENCHER--#
         #Analisador.tokens.selecionarProximo()
         if (Analisador.tokens.atual.tipo == OPEN_KEY):#{
             resultado = Analisador.analisarComando()
@@ -331,14 +339,14 @@ class Analisador:
 
         
     def analisarComandos():
-        resultado = 0
+        #resultado = #--PREENCHER--#
         lista_comandos = []
         if (Analisador.tokens.atual.tipo == OPEN_KEY):#{
             Analisador.tokens.selecionarProximo()
             resultado = Analisador.analisarComando()
-            Analisador.tokens.selecionarProximo()
             if (Analisador.tokens.atual.tipo == SEMICOLON):#;;
                 Analisador.tokens.selecionarProximo()
+                lista_comandos.append(resultado)
             else:
                 raise Exception("Erro: Comando Incorreto") 
 
@@ -359,7 +367,7 @@ def main():
     try:
         Analisador.inicializar(inputCompiler)
         raiz = Analisador.analisarComandos()
-        print("Resultado:",raiz.Evaluate())
+        raiz.Evaluate()
 
     except Exception as erro:
         print(erro)
