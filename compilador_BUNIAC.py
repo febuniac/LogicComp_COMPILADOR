@@ -24,10 +24,7 @@ with open('inputCompiler.txt') as entrada:
   inputCompiler = entrada.read()
   inputCompiler = inputCompiler.replace("\n"," ")
   inputCompiler = inputCompiler.replace(" ","")
-  #print(inputCompiler)
-#[line.rstrip('\n') for line in entrada] #Strip line with list comprehension
 
-  
 #___________________________________________________________________________________________________
 class SymbolTable:
     dictionary = {}
@@ -66,7 +63,7 @@ class Assign(Node):#Assign Operation
         self.children = children
     def Evaluate(self):
         #gravando na symboltable o valor da atribuição
-        SymbolTable.set_nome_valor(self.children[0].valor,self.children[1].Evaluate())#valor dó nó é o nome da variavel 
+        SymbolTable.set_nome_valor(self.children[0].nome,self.children[1].Evaluate())#valor dó nó é o nome da variavel 
 
 
 class Comandos(Node):#Comandos Operation
@@ -268,7 +265,7 @@ class Analisador:
         return resultado
 
     def analisarFator():
-        resultado = 0
+        #resultado = 0
         if Analisador.tokens.atual.tipo == INT:
             resultado = IntVal(Analisador.tokens.atual.valor)
             Analisador.tokens.selecionarProximo()
@@ -286,6 +283,7 @@ class Analisador:
            else:
                 raise Exception("Erro: Parentesês não fecha") 
         elif (Analisador.tokens.atual.tipo == IDENTIFIER):
+            resultado = Identifier(Analisador.tokens.atual.valor, Analisador.tokens.atual.tipo)
             Analisador.tokens.selecionarProximo()
         else:
              raise Exception("Erro: Expressão inválida (fator)")
