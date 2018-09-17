@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import re #importing regular expression
+#___________________________________________________________________________________________________
 #Tipos de Token (constantes)
 INT = "INT"
 PLUS = "PLUS"
@@ -16,17 +17,22 @@ ASSIGN = "ASSIGN"
 PRINTF ="PRINTF"
 IDENTIFIER = "IDENTIFIER"
 SEMICOLON ="SEMICOLON"
+#___________________________________________________________________________________________________
 entrada = (str(input("Conta: ")))#entrada do usuário
-
-
+#___________________________________________________________________________________________________
 class SymbolTable:
-    def __init__(self,dictionary):
-        dictionary = {}
+    dictionary = {}
+    def __init__(self):
+        pass
     def get_nome(self,nome):
-        return self.nome
+        return SymbolTable.dictionary[str(nome)]
+        #return self.nome
     def set_nome_valor(self,nome,valor):
-        self.nome = valor
-SymbolTable = SymbolTable({})
+        SymbolTable.dictionary[str(nome)] = int(valor)
+        #self.nome = valor
+
+SymbolTable = SymbolTable()
+      
 class Node:
     # Constructor to create a new Node
     def __init__(self,valor,children):
@@ -99,15 +105,14 @@ class IntVal(Node):#Integer Value
 class NoOp(Node):#No Operation
     def Evaluate(self):
         return None
-
+#___________________________________________________________________________________________________
 #Class Token
 class Token:
     def __init__(self,tipo,valor):
         self.tipo=tipo#tipo (string-token type);
         self.valor=valor#valor (integer-token value);
-
+#___________________________________________________________________________________________________
 #Classe Tokenizador
-
 class Tokenizador:
     def __init__(self,origem):
         self.origem = origem#origem (string-codigo fonte tokenizado)-> conta matemática(entrada do usuario)
@@ -199,7 +204,7 @@ class Tokenizador:
                 token = Token(CLOSE_PAR,"")
                 self.posicao+=1
                 self.atual=token
-
+#___________________________________________________________________________________________________
 #Classe Analisador(estática)
 #tokens (Tokenizador-ler código fonte e alimentar o Analisador)
 class Analisador:
@@ -258,29 +263,33 @@ class Analisador:
                 Analisador.tokens.selecionarProximo()
                 resultado = Analisador.analisarExpressao()
                 Analisador.tokens.selecionarProximo()
-            else:
-                raise Exception("printf incorreto")
                 if (Analisador.tokens.atual.tipo == CLOSE_PAR):
                     Analisador.tokens.selecionarProximo()
                 else:
                     raise Exception("Erro: Parentesês não fecha")
+            else:
+                raise Exception("printf incorreto")
+                # if (Analisador.tokens.atual.tipo == CLOSE_PAR):
+                #     Analisador.tokens.selecionarProximo()
+                # else:
+                #     raise Exception("Erro: Parentesês não fecha")
         else:
             raise Exception("Erro: Expressão inválida (printf) ")
         return resultado    
     def analisarAtribuicao():
         resultado=0
         if (Analisador.tokens.atual.tipo == IDENTIFIER):#Atribuição
-             Analisador.tokens.selecionarProximo()
-             if(Analisador.tokens.atual.tipo == ASSIGN):#=
+            Analisador.tokens.selecionarProximo()
+            if(Analisador.tokens.atual.tipo == ASSIGN):#=
                 op = Analisador.tokens.atual.tipo
                 Analisador.tokens.selecionarProximo()
                 resultado = Assign(op,[resultado, Analisador.analisarExpressao()])
-             else:
+            else:
                 raise Exception("Erro: Atribuição inválida (atribuição)")
         return resultado
    
     def analisarComando():
-        resultado=0
+        #resultado=0
         Analisador.tokens.selecionarProximo()
         if (Analisador.tokens.atual.tipo == OPEN_KEY):#{
             resultado = Analisador.analisarComando()
@@ -316,7 +325,7 @@ class Analisador:
             if (Analisador.tokens.atual.tipo == CLOSE_KEY):#} 
                 return Comandos(None,lista_comandos)
         return resultado
-
+#___________________________________________________________________________________________________
 def main():
     try:
         Analisador.inicializar(entrada)
