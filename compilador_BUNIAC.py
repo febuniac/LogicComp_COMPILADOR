@@ -18,7 +18,16 @@ PRINTF ="PRINTF"
 IDENTIFIER = "IDENTIFIER"
 SEMICOLON ="SEMICOLON"
 #___________________________________________________________________________________________________
-entrada = (str(input("Conta: ")))#entrada do usuário
+#Leitura de Arquivo
+#entrada = (str(input("Conta: ")))#entrada do usuário
+with open('inputCompiler.txt') as entrada:
+  inputCompiler = entrada.read()
+  inputCompiler = inputCompiler.replace("\n"," ")
+  inputCompiler = inputCompiler.replace(" ","")
+  print(inputCompiler)
+#[line.rstrip('\n') for line in entrada] #Strip line with list comprehension
+
+  
 #___________________________________________________________________________________________________
 class SymbolTable:
     dictionary = {}
@@ -309,8 +318,8 @@ class Analisador:
         return resultado
    
     def analisarComando():
-        #resultado=0
-        Analisador.tokens.selecionarProximo()
+        resultado=0
+        #Analisador.tokens.selecionarProximo()
         if (Analisador.tokens.atual.tipo == OPEN_KEY):#{
             resultado = Analisador.analisarComando()
         elif (Analisador.tokens.atual.tipo == IDENTIFIER):#id
@@ -318,7 +327,7 @@ class Analisador:
         elif (Analisador.tokens.atual.tipo == PRINTF):#id
             resultado = Analisador.analisarPrintf()
         return resultado
-        #* 3 possibilidades Comandos; Atribuição; Printf*#      
+    
 
         
     def analisarComandos():
@@ -348,7 +357,7 @@ class Analisador:
 #___________________________________________________________________________________________________
 def main():
     try:
-        Analisador.inicializar(entrada)
+        Analisador.inicializar(inputCompiler)
         raiz = Analisador.analisarComandos()
         print("Resultado:",raiz.Evaluate())
 
