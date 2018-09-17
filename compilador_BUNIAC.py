@@ -319,7 +319,7 @@ class Analisador:
    
     def analisarComando():
         if (Analisador.tokens.atual.tipo == OPEN_KEY):#{
-            resultado = Analisador.analisarComando()
+            resultado = Analisador.analisarComandos()
         elif (Analisador.tokens.atual.tipo == IDENTIFIER):#id
             resultado = Analisador.analisarAtribuicao()
         elif (Analisador.tokens.atual.tipo == PRINTF):#id
@@ -347,9 +347,10 @@ class Analisador:
                 if (Analisador.tokens.atual.tipo == SEMICOLON):#;
                     Analisador.tokens.selecionarProximo()
                 else:
-                    raise Exception("Erro: Formato de comando incorreto")   
-            if (Analisador.tokens.atual.tipo == CLOSE_KEY):#} 
-                return Comandos(None,lista_comandos)
+                    raise Exception("Erro: Formato de comando incorreto")
+            Analisador.tokens.selecionarProximo()
+            #if (Analisador.tokens.atual.tipo == CLOSE_KEY):#} 
+            return Comandos(None,lista_comandos)
         return resultado
 #___________________________________________________________________________________________________
 def main():
