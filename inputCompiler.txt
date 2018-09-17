@@ -1,5 +1,8 @@
 {
-    x=2+2;
-    printf(x);
+    y = (2*2) * (2);
+    x= 2;
+    printf(1 + y);
+    y =1;
+    printf(x + y);
 
 }

@@ -23,6 +23,7 @@ SEMICOLON ="SEMICOLON"
 with open('inputCompiler.txt') as entrada:
   inputCompiler = entrada.read()
   inputCompiler = inputCompiler.replace("\n"," ")
+  inputCompiler = inputCompiler.replace("   "," ")
   inputCompiler = inputCompiler.replace(" ","")
 
 #___________________________________________________________________________________________________
@@ -265,7 +266,6 @@ class Analisador:
         return resultado
 
     def analisarFator():
-        #resultado = 0
         if Analisador.tokens.atual.tipo == INT:
             resultado = IntVal(Analisador.tokens.atual.valor)
             Analisador.tokens.selecionarProximo()
@@ -290,7 +290,6 @@ class Analisador:
 
         return resultado
     def analisarPrintf():
-        #resultado = #--PREENCHER--#
         if (Analisador.tokens.atual.tipo == PRINTF):#Printf
             Analisador.tokens.selecionarProximo()
             if (Analisador.tokens.atual.tipo == OPEN_PAR):
@@ -303,15 +302,10 @@ class Analisador:
                     raise Exception("Erro: Parentesês não fecha")
             else:
                 raise Exception("printf incorreto")
-                # if (Analisador.tokens.atual.tipo == CLOSE_PAR):
-                #     Analisador.tokens.selecionarProximo()
-                # else:
-                #     raise Exception("Erro: Parentesês não fecha")
         else:
             raise Exception("Erro: Expressão inválida (printf) ")
         return resultado    
     def analisarAtribuicao():
-        #resultado=#--PREENCHER--#
         if (Analisador.tokens.atual.tipo == IDENTIFIER):#Atribuição
             resultado = Identifier(Analisador.tokens.atual.valor, Analisador.tokens.atual.tipo)
             Analisador.tokens.selecionarProximo()
@@ -324,8 +318,6 @@ class Analisador:
         return resultado
    
     def analisarComando():
-        #resultado=#--PREENCHER--#
-        #Analisador.tokens.selecionarProximo()
         if (Analisador.tokens.atual.tipo == OPEN_KEY):#{
             resultado = Analisador.analisarComando()
         elif (Analisador.tokens.atual.tipo == IDENTIFIER):#id
@@ -337,7 +329,6 @@ class Analisador:
 
         
     def analisarComandos():
-        #resultado = #--PREENCHER--#
         lista_comandos = []
         if (Analisador.tokens.atual.tipo == OPEN_KEY):#{
             Analisador.tokens.selecionarProximo()
