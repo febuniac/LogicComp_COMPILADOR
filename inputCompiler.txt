@@ -1,9 +1,11 @@
 {
-    y = (2*2) * (2);
-    x= 2;
-    printf(1 + y);
-    y =1;
-    {printf(x + y);};
-    
+
+    Z = 2;
+    y = 3;
+if (z==2){
+printf(z);
+}
+else{
+printf(y);
 
 }

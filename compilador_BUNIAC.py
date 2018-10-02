@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import re #importing regular expression
+
 #___________________________________________________________________________________________________
 #Tipos de Token (constantes)
 INT = "INT"
@@ -17,6 +18,16 @@ ASSIGN = "ASSIGN"
 PRINTF ="PRINTF"
 IDENTIFIER = "IDENTIFIER"
 SEMICOLON ="SEMICOLON"
+OR= "OR"
+AND= "AND"
+IF= "IF"
+BIGGER_THAN= "BIGGER_THAN"
+SMALLER_THAN= "SMALLER_THAN"
+EQUAL_TO= "EQUAL_TO"
+ELSE= "ELSE"
+WHILE = "WHILE"
+SCANF = "SCANF"
+NOT = "NOT"
 #___________________________________________________________________________________________________
 #Leitura de Arquivo
 #entrada = (str(input("Conta: ")))#entrada do usuário
@@ -91,7 +102,16 @@ class BinOp(Node):#Binary Operation
             return val_esq * val_dir
         elif (self.valor == 'DIV'):
             return val_esq // val_dir
-
+        elif self.valor == 'OR':
+            return val_esq or val_dir
+        elif self.valor == 'AND':
+            return val_esq and val_dir
+        elif self.valor == 'BIGGER_THAN':
+            return val_esq > val_dir
+        elif self.valor == 'SMALLER_THAN':
+            return val_esq < val_dir    
+        elif self.valor == 'EQUAL_TO':
+            return val_esq == val_dir      
 class Printf(Node):
     def __init__(self,valor,children):
         self.valor = valor
@@ -109,6 +129,8 @@ class UnOp(Node):#Unary Operation
             return +val_unico
         elif (self.valor == 'MINUS'):
             return -val_unico
+        elif self.valor == 'NOT':
+            return not val_unico 
 
 class IntVal(Node):#Integer Value
     def __init__(self,valor):
@@ -119,6 +141,31 @@ class IntVal(Node):#Integer Value
 class NoOp(Node):#No Operation
     def Evaluate(self):
         return None
+
+class Scanf(Node):
+    def __init__(self,valor):
+        self.valor = valor
+    def Evaluate(self):
+        return (input(""))
+class If(Node):
+    def __init__(self,valor,children):
+        self.valor = valor
+        self.children = children
+    def Evaluate(self):
+        val_esq=self.children[0].Evaluate()
+        if val_esq == True:
+            self.children[1].Evaluate()
+        else:
+            self.children[2].Evaluate()
+
+class While(Node):
+    def __init__(self,valor,children):
+        self.valor = valor
+        self.children = children
+    def Evaluate(self):
+        while self.children[0].Evaluate()==True:
+            self.children[1].Evaluate()
+
 #___________________________________________________________________________________________________
 #Class Token
 class Token:
@@ -190,6 +237,12 @@ class Tokenizador:
                 fullString = ''.join(map(str, string))#converte a lista de chars para uma string
                 if(fullString == "printf"):    
                     token = Token('PRINTF', fullString)
+                elif(fullString == "if"):    
+                    token = Token('IF', fullString)
+                elif(fullString == "while"):    
+                    token = Token('WHILE', fullString)
+                elif(fullString == "scanf"):    
+                    token = Token('SCANF', fullString)
                 else:
                     token = Token('IDENTIFIER', fullString)
                 self.atual = token
@@ -238,6 +291,40 @@ class Tokenizador:
                 token = Token(SEMICOLON,"")
                 self.posicao+=1
                 self.atual=token
+            
+            elif self.origem[self.posicao] == '||':
+                token = Token(OR,"")
+                self.posicao+=1
+                self.atual=token
+            
+            elif self.origem[self.posicao] == '&&':
+                token = Token(AND,"")
+                self.posicao+=1
+                self.atual=token
+            
+            elif self.origem[self.posicao] == '>':
+                token = Token(BIGGER_THAN,"")
+                self.posicao+=1
+                self.atual=token
+            
+            elif self.origem[self.posicao] == '<':
+                token = Token(SMALLER_THAN,"")
+                self.posicao+=1
+                self.atual=token
+            
+            elif self.origem[self.posicao] == '==':
+                token = Token(EQUAL_TO,"")
+                self.posicao+=1
+                self.atual=token
+            
+            elif self.origem[self.posicao] == "!":
+                token = Token(NOT,"")
+                self.posicao+=1
+                self.atual=token
+
+
+
+#________________
 #___________________________________________________________________________________________________
 #Classe Analisador(estática)
 #tokens (Tokenizador-ler código fonte e alimentar o Analisador)
@@ -313,6 +400,9 @@ class Analisador:
                 op = Analisador.tokens.atual.tipo
                 Analisador.tokens.selecionarProximo()
                 resultado = Assign(op,[resultado, Analisador.analisarExpressao()])
+            elif(Analisador.tokens.atual.tipo == SCANF):#=
+                
+                resultado = Analisador.analisarScanf()
             else:
                 raise Exception("Erro: Atribuição inválida (atribuição)")
         return resultado
@@ -352,6 +442,102 @@ class Analisador:
             #if (Analisador.tokens.atual.tipo == CLOSE_KEY):#} 
             return Comandos(None,lista_comandos)
         return resultado
+
+    def analisarExpressao_Boolean():
+        resultado = Analisador.analisarTermo_Boolean()
+
+        while (Analisador.tokens.atual.tipo == OR):
+            op = Analisador.tokens.atual.tipo
+            Analisador.tokens.selecionarProximo()
+            resultado = BinOp(op,[resultado, Analisador.analisarTermo_Boolean()])
+        return resultado
+
+    def analisarTermo_Boolean():
+        resultado = Analisador.analisarFator_Boolean()
+
+        while (Analisador.tokens.atual.tipo == AND):
+            op = Analisador.tokens.atual.tipo
+            Analisador.tokens.selecionarProximo()
+            resultado = BinOp(op,[resultado, Analisador.analisarFator_Boolean()])
+        return resultado
+    def analisarFator_Boolean():
+        resultado = Analisador.analisarExpressao_Relacional()
+
+        while (Analisador.tokens.atual.tipo == NOT):
+            op = Analisador.tokens.atual.tipo
+            Analisador.tokens.selecionarProximo()
+            resultado = BinOp(op,[resultado, Analisador.analisarExpressao_Relacional()])
+        return resultado
+    def analisarExpressao_Relacional():
+        resultado = Analisador.analisarExpressao()
+
+        if (Analisador.tokens.atual.tipo == BIGGER_THAN):
+            op = Analisador.tokens.atual.tipo
+            Analisador.tokens.selecionarProximo()
+            resultado = BinOp(op,[resultado, Analisador.analisarExpressao()])
+        elif (Analisador.tokens.atual.tipo == SMALLER_THAN):
+            op = Analisador.tokens.atual.tipo
+            Analisador.tokens.selecionarProximo()
+            resultado = BinOp(op,[resultado, Analisador.analisarExpressao()])
+        elif (Analisador.tokens.atual.tipo == EQUAL_TO):
+            op = Analisador.tokens.atual.tipo
+            Analisador.tokens.selecionarProximo()
+            resultado = BinOp(op,[resultado, Analisador.analisarExpressao()])
+        return resultado
+    def analisarIf():
+        if (Analisador.tokens.atual.tipo == IF):#If
+            Analisador.tokens.selecionarProximo()
+            if (Analisador.tokens.atual.tipo == OPEN_PAR):
+                Analisador.tokens.selecionarProximo()
+                resultado = Analisador.analisarExpressao_Boolean()
+                if (Analisador.tokens.atual.tipo == CLOSE_PAR):
+                    Analisador.tokens.selecionarProximo()
+                    resultado = Analisador.analisarComandos()
+                    if (Analisador.tokens.atual.tipo == ELSE):#Else
+                        resultado = If(IF,[resultado,Analisador.analisarComandos()])
+                        # resultado = Analisador.analisarComandos()
+                    # resultado= #IF LA EM CIMA   
+                else:
+                    raise Exception("Erro: Parentesês não fecha")
+            
+            else:
+                raise Exception("printf incorreto")
+        else:
+            raise Exception("Erro: Expressão inválida (printf) ")
+        return resultado    
+    def analisarWhile():
+        if (Analisador.tokens.atual.tipo == WHILE):#Printf
+            Analisador.tokens.selecionarProximo()
+            if (Analisador.tokens.atual.tipo == OPEN_PAR):
+                Analisador.tokens.selecionarProximo()
+                resultado = Analisador.analisarExpressao()
+                if (Analisador.tokens.atual.tipo == CLOSE_PAR):
+                    Analisador.tokens.selecionarProximo()
+                    resultado = While(WHILE,[resultado, Analisador.analisarComandos()])
+                    # resultado = Analisador.analisarComandos()
+                else:
+                    raise Exception("Erro: Parentesês não fecha")
+            # resultado = Assign(WHILE,[resultado, Analisador.analisarComandos()])#WHILE LÁ EM CIMA
+            else:
+                raise Exception("while incorreto")
+        else:
+            raise Exception("Erro: Expressão inválida (while) ")
+        return resultado   
+    def analisarScanf(): 
+        if (Analisador.tokens.atual.tipo == SCANF):#Scanf
+            Analisador.tokens.selecionarProximo()
+            if (Analisador.tokens.atual.tipo == OPEN_PAR):
+                Analisador.tokens.selecionarProximo()
+                if (Analisador.tokens.atual.tipo == CLOSE_PAR):
+                    Analisador.tokens.selecionarProximo()
+                    resultado = Scanf(SCANF)#SCANF LÁ EM CIMA
+                else:
+                    raise Exception("Erro: Parentesês não fecha")
+            else:
+                raise Exception("scanf incorreto")
+        else:
+            raise Exception("Erro: Expressão inválida (scanf) ")
+        return resultado         
 #___________________________________________________________________________________________________
 def main():
     try:
