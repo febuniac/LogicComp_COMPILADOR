@@ -353,7 +353,7 @@ class Analisador:
         return resultado
 
     def analisarFator():
-        resultado=None
+        #resultado=None
         if Analisador.tokens.atual.tipo == INT:
             resultado = IntVal(Analisador.tokens.atual.valor)
             Analisador.tokens.selecionarProximo()
@@ -378,7 +378,7 @@ class Analisador:
 
         return resultado
     def analisarPrintf():
-        resultado=None
+        #resultado=None
         if (Analisador.tokens.atual.tipo == PRINTF):#Printf
             Analisador.tokens.selecionarProximo()
             if (Analisador.tokens.atual.tipo == OPEN_PAR):
@@ -395,7 +395,7 @@ class Analisador:
             raise Exception("Erro: Expressão inválida (printf) ")
         return resultado    
     def analisarAtribuicao():
-        resultado=None
+        #resultado=None
         if (Analisador.tokens.atual.tipo == IDENTIFIER):#Atribuição
             resultado = Identifier(Analisador.tokens.atual.valor, Analisador.tokens.atual.tipo)
             Analisador.tokens.selecionarProximo()
@@ -411,19 +411,23 @@ class Analisador:
         return resultado
    
     def analisarComando():
-        resultado=None
+        # resultado=None
         if (Analisador.tokens.atual.tipo == OPEN_KEY):#{
             resultado = Analisador.analisarComandos()
         elif (Analisador.tokens.atual.tipo == IDENTIFIER):#id
             resultado = Analisador.analisarAtribuicao()
         elif (Analisador.tokens.atual.tipo == PRINTF):#id
             resultado = Analisador.analisarPrintf()
+        elif (Analisador.tokens.atual.tipo == IF):#id
+            resultado = Analisador.analisarIf()
+        elif (Analisador.tokens.atual.tipo == WHILE):#id
+            resultado = Analisador.analisarWhile()
         return resultado
     
 
         
     def analisarComandos():
-        resultado=None
+       # resultado=None
         lista_comandos = []
         if (Analisador.tokens.atual.tipo == OPEN_KEY):#{
             Analisador.tokens.selecionarProximo()
@@ -490,7 +494,7 @@ class Analisador:
             resultado = BinOp(op,[resultado, Analisador.analisarExpressao()])
         return resultado
     def analisarIf():
-        resultado=None
+        #resultado=None
         if (Analisador.tokens.atual.tipo == IF):#If
             Analisador.tokens.selecionarProximo()
             if (Analisador.tokens.atual.tipo == OPEN_PAR):
@@ -512,7 +516,8 @@ class Analisador:
             raise Exception("Erro: Expressão inválida (printf) ")
         return resultado    
     def analisarWhile():
-        resultado=None
+        #resultado=None
+        
         if (Analisador.tokens.atual.tipo == WHILE):#Printf
             Analisador.tokens.selecionarProximo()
             if (Analisador.tokens.atual.tipo == OPEN_PAR):
@@ -531,7 +536,7 @@ class Analisador:
             raise Exception("Erro: Expressão inválida (while) ")
         return resultado   
     def analisarScanf(): 
-        resultado=None
+        #resultado=None
         if (Analisador.tokens.atual.tipo == SCANF):#Scanf
             Analisador.tokens.selecionarProximo()
             if (Analisador.tokens.atual.tipo == OPEN_PAR):

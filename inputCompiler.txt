@@ -1,8 +1,8 @@
 {
 
-    z= 2;
+    z = 2;
     y = 3;
-if (z==2){
+if (z<3){
 printf(z);
 }
 else{
