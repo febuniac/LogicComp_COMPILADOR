@@ -83,6 +83,7 @@ class Comandos(Node):#Comandos Operation
         self.valor = valor
         self.children = children
     def Evaluate(self):
+        print(self.children)
         for child in self.children:
             child.Evaluate()#child percorre a lista de children e vai dando evaluate
         
@@ -239,6 +240,8 @@ class Tokenizador:
                     token = Token('PRINTF', fullString)
                 elif(fullString == "if"):    
                     token = Token('IF', fullString)
+                elif(fullString == "else"):    
+                    token = Token('ELSE', fullString)
                 elif(fullString == "while"):    
                     token = Token('WHILE', fullString)
                 elif(fullString == "scanf"):    
@@ -322,9 +325,6 @@ class Tokenizador:
                 self.posicao+=1
                 self.atual=token
 
-
-
-#________________
 #___________________________________________________________________________________________________
 #Classe Analisador(estática)
 #tokens (Tokenizador-ler código fonte e alimentar o Analisador)
@@ -423,9 +423,7 @@ class Analisador:
         elif (Analisador.tokens.atual.tipo == WHILE):#id
             resultado = Analisador.analisarWhile()
         return resultado
-    
-
-        
+   
     def analisarComandos():
        # resultado=None
         lista_comandos = []
@@ -450,7 +448,9 @@ class Analisador:
             Analisador.tokens.selecionarProximo()
             #if (Analisador.tokens.atual.tipo == CLOSE_KEY):#} 
             return Comandos(None,lista_comandos)
-        return resultado
+        else:
+            raise Exception("Erro: Formato de comando incorreto")
+        #return resultado
 
     def analisarExpressao_Boolean():
         resultado = Analisador.analisarTermo_Boolean()
@@ -493,23 +493,25 @@ class Analisador:
             Analisador.tokens.selecionarProximo()
             resultado = BinOp(op,[resultado, Analisador.analisarExpressao()])
         return resultado
+    
     def analisarIf():
         #resultado=None
         if (Analisador.tokens.atual.tipo == IF):#If
             Analisador.tokens.selecionarProximo()
             if (Analisador.tokens.atual.tipo == OPEN_PAR):
                 Analisador.tokens.selecionarProximo()
-                resultado = Analisador.analisarExpressao_Boolean()
+                resultado = [Analisador.analisarExpressao_Boolean()]
                 if (Analisador.tokens.atual.tipo == CLOSE_PAR):
                     Analisador.tokens.selecionarProximo()
-                    resultado = Analisador.analisarComandos()
+                    resultado.append(Analisador.analisarComandos())
                     if (Analisador.tokens.atual.tipo == ELSE):#Else
-                        resultado = If(IF,[resultado,Analisador.analisarComandos()])
-                        #resultado = Analisador.analisarComandos()
-                    # resultado= #IF LA EM CIMA   
+                        Analisador.tokens.selecionarProximo()
+                        resultado.append(Analisador.analisarComandos())
+                        #resultado = If(IF,resultado)
+                    
+                    resultado = If(IF,resultado)
                 else:
                     raise Exception("Erro: Parentesês não fecha")
-                #resultado = If(IF,[resultado,Analisador.analisarComandos()])
             else:
                 raise Exception("printf incorreto")
         else:
@@ -536,7 +538,7 @@ class Analisador:
             raise Exception("Erro: Expressão inválida (while) ")
         return resultado   
     def analisarScanf(): 
-        #resultado=None
+        resultado=None
         if (Analisador.tokens.atual.tipo == SCANF):#Scanf
             Analisador.tokens.selecionarProximo()
             if (Analisador.tokens.atual.tipo == OPEN_PAR):
@@ -553,13 +555,13 @@ class Analisador:
         return resultado         
 #___________________________________________________________________________________________________
 def main():
-    try:
-        Analisador.inicializar(inputCompiler)
-        raiz = Analisador.analisarComandos()
-        raiz.Evaluate()
+    #try:
+    Analisador.inicializar(inputCompiler)
+    raiz = Analisador.analisarComandos()
+    raiz.Evaluate()
 
-    except Exception as erro:
-        print(erro)
+    #except Exception as erro:
+    #    print(erro)
 
 if __name__== "__main__":
     main()

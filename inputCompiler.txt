@@ -1,12 +1,12 @@
 {
-
-    z = 2;
-    y = 3;
-if (z<3){
+z = 2;
+y = 3;
+if(z<3){
 printf(z);
 }
+
 else{
 printf(y);
-} 
-
+};
+ 
 }
