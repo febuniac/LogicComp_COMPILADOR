@@ -520,15 +520,14 @@ class Analisador:
     def analisarWhile():
         #resultado=None
         
-        if (Analisador.tokens.atual.tipo == WHILE):#Printf
+        if (Analisador.tokens.atual.tipo == WHILE):#WHILE
             Analisador.tokens.selecionarProximo()
             if (Analisador.tokens.atual.tipo == OPEN_PAR):
                 Analisador.tokens.selecionarProximo()
-                resultado = Analisador.analisarExpressao()
+                resultado = Analisador.analisarExpressao_Boolean()
                 if (Analisador.tokens.atual.tipo == CLOSE_PAR):
                     Analisador.tokens.selecionarProximo()
                     resultado = While(WHILE,[resultado, Analisador.analisarComandos()])
-                    # resultado = Analisador.analisarComandos()
                 else:
                     raise Exception("Erro: Parentesês não fecha")
             # resultado = Assign(WHILE,[resultado, Analisador.analisarComandos()])#WHILE LÁ EM CIMA
