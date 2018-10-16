@@ -5,5 +5,12 @@ while(y<5){
 printf(1);
 y=y+1;
 };
+if(z<3){
+printf(z);
+}
+
+else{
+printf(y);
+};
  
 }
