@@ -28,6 +28,12 @@ ELSE= "ELSE"
 WHILE = "WHILE"
 SCANF = "SCANF"
 NOT = "NOT"
+MAIN = "MAIN"
+INT = "INT"
+CHAR = "CHAR"
+VOID = "VOID"
+COMMA="COMMA"
+
 #___________________________________________________________________________________________________
 #Leitura de Arquivo
 #entrada = (str(input("Conta: ")))#entrada do usuário
@@ -36,7 +42,8 @@ with open('inputCompiler.txt') as entrada:
   inputCompiler = inputCompiler.replace("\n"," ")
   inputCompiler = inputCompiler.replace("   "," ")
   inputCompiler = inputCompiler.replace(" ","")
-
+#   while ("  ") in inputCompiler:
+#     inputCompiler.replace("  "," ")
 #___________________________________________________________________________________________________
 class SymbolTable:
     dictionary = {}
@@ -45,8 +52,8 @@ class SymbolTable:
     def get_nome(self,nome):
         return SymbolTable.dictionary[str(nome)]
         #return self.nome
-    def set_nome_valor(self,nome,valor):
-        SymbolTable.dictionary[str(nome)] = int(valor)
+    def set_nome_valor_tipo(self,nome,valor,tipo):
+        SymbolTable.dictionary[str(nome)] = [int(valor),str(tipo)]
         #self.nome = valor
 
 SymbolTable = SymbolTable()
@@ -75,7 +82,8 @@ class Assign(Node):#Assign Operation
         self.children = children
     def Evaluate(self):
         #gravando na symboltable o valor da atribuição
-        SymbolTable.set_nome_valor(self.children[0].nome,self.children[1].Evaluate())#valor dó nó é o nome da variavel 
+        valor = self.children[1].Evaluate()
+        SymbolTable.set_nome_valor_tipo(self.children[0].nome, valor[0], valor[1])#valor dó nó é o nome da variavel 
 
 
 class Comandos(Node):#Comandos Operation
@@ -96,23 +104,50 @@ class BinOp(Node):#Binary Operation
         val_esq=self.children[0].Evaluate()
         val_dir=self.children[1].Evaluate()
         if(self.valor == 'PLUS'):
-            return val_esq + val_dir
+            if val_esq[1] == val_dir[1] and val_esq[1] == INT:
+                return [val_esq[0] + val_dir[0], INT]
+            else:
+                raise Exception("Erro: tipos incompatíveis int PLUS")
         elif (self.valor == 'MINUS'):
-            return val_esq - val_dir
+            if val_esq[1] == val_dir[1] and val_esq[1] == INT:
+                return [val_esq[0] - val_dir[0], INT]
+            else:
+                raise Exception("Erro: tipos incompatíveis int MINUS")
         elif (self.valor == 'MULT'):
-            return val_esq * val_dir
+            if val_esq[1] == val_dir[1] and val_esq[1] == INT:
+                return [val_esq[0] * val_dir[0], INT]
+            else:
+                raise Exception("Erro: tipos incompatíveis int MULT")
         elif (self.valor == 'DIV'):
-            return val_esq // val_dir
+            if val_esq[1] == val_dir[1] and val_esq[1] == INT:
+                return [val_esq[0] // val_dir[0], INT]
+            else:
+                raise Exception("Erro: tipos incompatíveis int DIV")
         elif self.valor == 'OR':
-            return val_esq or val_dir
+            if val_esq[1] == val_dir[1] and val_esq[1] == CHAR:
+                return [val_esq[0] or val_dir[0], CHAR]
+            else:
+                raise Exception("Erro: tipos incompatíveis char OR")
         elif self.valor == 'AND':
-            return val_esq and val_dir
+            if val_esq[1] == val_dir[1] and val_esq[1] == CHAR:
+                return [val_esq[0] and val_dir[0], CHAR]
+            else:
+                raise Exception("Erro: tipos incompatíveis char AND")    
         elif self.valor == 'BIGGER_THAN':
-            return val_esq > val_dir
+            if val_esq[1] == val_dir[1] and val_esq[1] == CHAR:
+                return [val_esq[0] > val_dir[0], CHAR]
+            else:
+                raise Exception("Erro: tipos incompatíveis char BIGGER_THAN")
         elif self.valor == 'SMALLER_THAN':
-            return val_esq < val_dir    
+            if val_esq[1] == val_dir[1] and val_esq[1] == CHAR:
+                return [val_esq[0] < val_dir[0], CHAR]
+            else:
+                raise Exception("Erro: tipos incompatíveis char SMALLER_THAN")               
         elif self.valor == 'EQUAL_TO':
-            return val_esq == val_dir      
+            if val_esq[1] == val_dir[1] and val_esq[1] == CHAR:
+                return [val_esq[0] == val_dir[0], CHAR]
+            else:
+                raise Exception("Erro: tipos incompatíveis char EQUAL_TO")               
 class Printf(Node):
     def __init__(self,valor,children):
         self.valor = valor
@@ -127,17 +162,17 @@ class UnOp(Node):#Unary Operation
     def Evaluate(self):
         val_unico=self.children[0].Evaluate()
         if (self.valor == 'PLUS'):
-            return +val_unico
+            return [+val_unico,INT]
         elif (self.valor == 'MINUS'):
-            return -val_unico
+            return [-val_unico,INT]
         elif self.valor == 'NOT':
-            return not val_unico 
+            return [not val_unico, CHAR]
 
 class IntVal(Node):#Integer Value
     def __init__(self,valor):
         self.valor = valor
     def Evaluate(self):
-        return self.valor
+        return [self.valor, INT]
 
 class NoOp(Node):#No Operation
     def Evaluate(self):
@@ -147,7 +182,7 @@ class Scanf(Node):
     def __init__(self,valor):
         self.valor = valor
     def Evaluate(self):
-        return (input(""))
+        return [input(""), INT]
 class If(Node):
     def __init__(self,valor,children):
         self.valor = valor
@@ -167,6 +202,27 @@ class While(Node):
         while self.children[0].Evaluate()==True:
             self.children[1].Evaluate()
 
+class Type(Node):#Type Def
+    def __init__(self,children):
+        self.valor = None
+        self.children = children
+    def Evaluate(self):
+        if (self.valor == 'INT'):
+            return [0, INT]#0 é valor default de int
+        elif (self.valor == 'CHAR'):
+            return [0, CHAR]
+        elif self.valor == 'VOID':
+            return [None, VOID]#MNone é valor default de char
+
+class VarDec(Node):#Variable Declaration
+    def __init__(self,valor,children):
+        self.valor = valor
+        self.children = children
+    def Evaluate(self):
+        tipo=self.children[0].Evaluate()
+        for child in self.children:
+             child.SymbolTable.set_nome_valor_tipo(self.children[0].nome, tipo[0], tipo[1])#tipo [0] é o valor default e e tipo[1] é o tipo (ex: no nó Type return [0, CHAR])
+        
 #___________________________________________________________________________________________________
 #Class Token
 class Token:
@@ -185,6 +241,7 @@ class Tokenizador:
         digito =""#Para numeros com mais de 1 digito
         string=[]#Para palvras com mais de 1 char
         #sempre aqui pois pega um token de cada vez
+        
         while self.posicao < len(self.origem) and (self.origem[self.posicao] == " "):#limpando os espaços
             self.posicao+=1#atualiza a posição
             if re.search('[0-9] +[0-9]', entrada):
@@ -212,6 +269,7 @@ class Tokenizador:
                     token = Token(DIV,"/")
                     self.atual=token
                     return
+            
             while self.posicao < len(self.origem) and (self.origem[self.posicao] == " "):#limpando os espaços
                 self.posicao+=1#atualiza a posição
                 if re.search('[0-9] +[0-9]', entrada):
@@ -246,6 +304,14 @@ class Tokenizador:
                     token = Token('WHILE', fullString)
                 elif(fullString == "scanf"):    
                     token = Token('SCANF', fullString)
+                elif(fullString == "main"):    
+                    token = Token('MAIN', fullString)
+                elif(fullString == "int"):    
+                    token = Token('INT', fullString)
+                elif(fullString == "char"):    
+                    token = Token('CHAR', fullString) 
+                elif(fullString == "void"):    
+                    token = Token('VOID', fullString)   
                 else:
                     token = Token('IDENTIFIER', fullString)
                 self.atual = token
@@ -322,6 +388,11 @@ class Tokenizador:
             
             elif self.origem[self.posicao] == "!":
                 token = Token(NOT,"")
+                self.posicao+=1
+                self.atual=token
+           
+            elif self.origem[self.posicao] == ',':
+                token = Token(COMMA,"")
                 self.posicao+=1
                 self.atual=token
 
@@ -551,7 +622,64 @@ class Analisador:
                 raise Exception("scanf incorreto")
         else:
             raise Exception("Erro: Expressão inválida (scanf) ")
-        return resultado         
+        return resultado 
+    def analisarPrograma():
+        resultado = Analisador.analisarTipo()
+        if (Analisador.tokens.atual.tipo == MAIN):#MAIN
+            Analisador.tokens.selecionarProximo()
+            if (Analisador.tokens.atual.tipo == OPEN_PAR):
+                Analisador.tokens.selecionarProximo()
+                if (Analisador.tokens.atual.tipo == CLOSE_PAR):
+                        Analisador.tokens.selecionarProximo()
+                        resultado = Analisador.analisarBloco()
+                else:
+                    raise Exception("Erro: Parentesês não fecha na main")
+            else:
+                raise Exception("formato da main incorreto")
+        else:
+            raise Exception("Erro: Expressão inválida (main) ")
+        return resultado
+
+    def analisarBloco():
+        if (Analisador.tokens.atual.tipo == OPEN_KEY):#{
+            Analisador.tokens.selecionarProximo()
+            resultado = Analisador.analisarComandos()
+            while (Analisador.tokens.atual.tipo != CLOSE_KEY):#}
+                resultado = Analisador.analisarComandos()
+                if (resultado == None):
+                    break
+            Analisador.tokens.selecionarProximo()
+        else:
+            raise Exception("Erro: Formato de bloco de comando incorreto")
+
+    def analisarVarDec(): 
+        resultado = Analisador.analisarTipo()
+        if (Analisador.tokens.atual.tipo == IDENTIFIER):#{
+            Analisador.tokens.selecionarProximo()
+            while (Analisador.tokens.atual.tipo != SEMICOLON):
+                if (Analisador.tokens.atual.tipo == COMMA):#;
+                    Analisador.tokens.selecionarProximo()
+                else:
+                    raise Exception("Erro: Formato de vardec incorreto")
+            Analisador.tokens.selecionarProximo()
+        else:
+            raise Exception("Erro: Formato de vardec incorreto")
+
+    def analisarTipo():
+        if (Analisador.tokens.atual.tipo == INT):
+            Analisador.tokens.selecionarProximo()
+            resultado = Type(INT)
+
+        elif (Analisador.tokens.atual.tipo == CHAR):
+            Analisador.tokens.selecionarProximo()
+            resultado = Type(CHAR)
+
+        elif (Analisador.tokens.atual.tipo == VOID):
+            Analisador.tokens.selecionarProximo()
+            resultado = Type(VOID)
+        else:
+            raise Exception("Erro: Tipo não reconheciddo, só aceita INT,CHAR,VOID")
+        return resultado        
 #___________________________________________________________________________________________________
 def main():
     #try:
