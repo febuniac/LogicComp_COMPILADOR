@@ -33,6 +33,7 @@ INT = "INT"
 CHAR = "CHAR"
 VOID = "VOID"
 COMMA="COMMA"
+TYPES = ["VOID","INT","CHAR"]
 
 #___________________________________________________________________________________________________
 #Leitura de Arquivo
@@ -41,7 +42,7 @@ with open('inputCompiler.txt') as entrada:
   inputCompiler = entrada.read()
   inputCompiler = inputCompiler.replace("\n"," ")
   inputCompiler = inputCompiler.replace("   "," ")
-  inputCompiler = inputCompiler.replace(" ","")
+  #inputCompiler = inputCompiler.replace(" ","")
 #   while ("  ") in inputCompiler:
 #     inputCompiler.replace("  "," ")
 #___________________________________________________________________________________________________
@@ -91,7 +92,7 @@ class Comandos(Node):#Comandos Operation
         self.valor = valor
         self.children = children
     def Evaluate(self):
-        print(self.children)
+        #print(self.children)
         for child in self.children:
             child.Evaluate()#child percorre a lista de children e vai dando evaluate
         
@@ -134,17 +135,17 @@ class BinOp(Node):#Binary Operation
             else:
                 raise Exception("Erro: tipos incompatíveis char AND")    
         elif self.valor == 'BIGGER_THAN':
-            if val_esq[1] == val_dir[1] and val_esq[1] == CHAR:
+            if val_esq[1] == val_dir[1] and val_esq[1] == INT:
                 return [val_esq[0] > val_dir[0], CHAR]
             else:
                 raise Exception("Erro: tipos incompatíveis char BIGGER_THAN")
         elif self.valor == 'SMALLER_THAN':
-            if val_esq[1] == val_dir[1] and val_esq[1] == CHAR:
+            if val_esq[1] == val_dir[1] and val_esq[1] == INT:
                 return [val_esq[0] < val_dir[0], CHAR]
             else:
                 raise Exception("Erro: tipos incompatíveis char SMALLER_THAN")               
         elif self.valor == 'EQUAL_TO':
-            if val_esq[1] == val_dir[1] and val_esq[1] == CHAR:
+            if val_esq[1] == val_dir[1] and val_esq[1] == INT:
                 return [val_esq[0] == val_dir[0], CHAR]
             else:
                 raise Exception("Erro: tipos incompatíveis char EQUAL_TO")               
@@ -153,7 +154,7 @@ class Printf(Node):
         self.valor = valor
         self.children = children
     def Evaluate(self):
-        print(self.children.Evaluate())
+        print(self.children.Evaluate()[0])
 
 class UnOp(Node):#Unary Operation
     def __init__(self,valor,children):
@@ -162,11 +163,20 @@ class UnOp(Node):#Unary Operation
     def Evaluate(self):
         val_unico=self.children[0].Evaluate()
         if (self.valor == 'PLUS'):
-            return [+val_unico,INT]
+            if val_unico[1] == INT:
+                return [+val_unico,INT]
+            else:
+                raise Exception("Erro: tipos incompatíveis char PLUS")
         elif (self.valor == 'MINUS'):
-            return [-val_unico,INT]
+            if val_unico[1] == INT:
+                return [-val_unico,INT]
+            else:
+                raise Exception("Erro: tipos incompatíveis char MINUS") 
         elif self.valor == 'NOT':
-            return [not val_unico, CHAR]
+            if val_unico[1] == CHAR:
+                return [not val_unico, CHAR]
+            else:
+                raise Exception("Erro: tipos incompatíveis char NOT") 
 
 class IntVal(Node):#Integer Value
     def __init__(self,valor):
@@ -183,12 +193,13 @@ class Scanf(Node):
         self.valor = valor
     def Evaluate(self):
         return [input(""), INT]
+
 class If(Node):
     def __init__(self,valor,children):
         self.valor = valor
         self.children = children
     def Evaluate(self):
-        val_esq=self.children[0].Evaluate()
+        val_esq=self.children[0].Evaluate()[0]
         if val_esq == True:
             self.children[1].Evaluate()
         else:
@@ -199,13 +210,13 @@ class While(Node):
         self.valor = valor
         self.children = children
     def Evaluate(self):
-        while self.children[0].Evaluate()==True:
+        while self.children[0].Evaluate()[0]==True:
             self.children[1].Evaluate()
 
 class Type(Node):#Type Def
-    def __init__(self,children):
-        self.valor = None
-        self.children = children
+    def __init__(self,valor):
+        self.valor = valor
+        self.children = None
     def Evaluate(self):
         if (self.valor == 'INT'):
             return [0, INT]#0 é valor default de int
@@ -221,7 +232,7 @@ class VarDec(Node):#Variable Declaration
     def Evaluate(self):
         tipo=self.children[0].Evaluate()
         for child in self.children:
-             child.SymbolTable.set_nome_valor_tipo(self.children[0].nome, tipo[0], tipo[1])#tipo [0] é o valor default e e tipo[1] é o tipo (ex: no nó Type return [0, CHAR])
+            SymbolTable.set_nome_valor_tipo(self.children[0].valor, tipo[0], tipo[1])#tipo [0] é o valor default e e tipo[1] é o tipo (ex: no nó Type return [0, CHAR])
         
 #___________________________________________________________________________________________________
 #Class Token
@@ -244,8 +255,8 @@ class Tokenizador:
         
         while self.posicao < len(self.origem) and (self.origem[self.posicao] == " "):#limpando os espaços
             self.posicao+=1#atualiza a posição
-            if re.search('[0-9] +[0-9]', entrada):
-                raise Exception("Erro: Digito seguido de digito")
+            #if re.search('[0-9]+[0-9]', entrada):
+            #    raise Exception("Erro: Digito seguido de digito")
         if self.posicao >= len(self.origem):#checa o tamanho da string de entrada
             token = Token(EOF,'null')#Para o fim da string
             self.atual=token#atualiza o atual
@@ -272,8 +283,8 @@ class Tokenizador:
             
             while self.posicao < len(self.origem) and (self.origem[self.posicao] == " "):#limpando os espaços
                 self.posicao+=1#atualiza a posição
-                if re.search('[0-9] +[0-9]', entrada):
-                    raise Exception("Erro: Digito seguido de digito")
+            #    if re.search('[0-9] +[0-9]', entrada):
+            #        raise Exception("Erro: Digito seguido de digito")
             if self.posicao >= len(self.origem):#checa o tamanho da string de entrada
                 token = Token(EOF,'null')#Para o fim da string
                 self.atual=token#atualiza o atual
@@ -458,6 +469,10 @@ class Analisador:
                 if (Analisador.tokens.atual.tipo == CLOSE_PAR):
                     Analisador.tokens.selecionarProximo()
                     resultado = Printf(PRINTF,resultado)
+                    if (Analisador.tokens.atual.tipo == SEMICOLON):#;;
+                        Analisador.tokens.selecionarProximo()
+                    else:
+                        raise Exception("Erro: Expressão inválida (printf)")
                 else:
                     raise Exception("Erro: Parentesês não fecha")
             else:
@@ -474,9 +489,13 @@ class Analisador:
                 op = Analisador.tokens.atual.tipo
                 Analisador.tokens.selecionarProximo()
                 resultado = Assign(op,[resultado, Analisador.analisarExpressao()])
-            elif(Analisador.tokens.atual.tipo == SCANF):#=
+            elif(Analisador.tokens.atual.tipo == SCANF):#scanf
                 
                 resultado = Analisador.analisarScanf()
+            else:
+                raise Exception("Erro: Atribuição inválida (atribuição)")
+            if (Analisador.tokens.atual.tipo == SEMICOLON):#;;
+                Analisador.tokens.selecionarProximo()
             else:
                 raise Exception("Erro: Atribuição inválida (atribuição)")
         return resultado
@@ -484,44 +503,46 @@ class Analisador:
     def analisarComando():
         # resultado=None
         if (Analisador.tokens.atual.tipo == OPEN_KEY):#{
-            resultado = Analisador.analisarComandos()
+            resultado = Analisador.analisarBloco()
         elif (Analisador.tokens.atual.tipo == IDENTIFIER):#id
             resultado = Analisador.analisarAtribuicao()
-        elif (Analisador.tokens.atual.tipo == PRINTF):#id
+        elif (Analisador.tokens.atual.tipo == PRINTF):#printf
             resultado = Analisador.analisarPrintf()
-        elif (Analisador.tokens.atual.tipo == IF):#id
+        elif (Analisador.tokens.atual.tipo == IF):#if
             resultado = Analisador.analisarIf()
-        elif (Analisador.tokens.atual.tipo == WHILE):#id
+        elif (Analisador.tokens.atual.tipo == WHILE):#while
             resultado = Analisador.analisarWhile()
+        elif (Analisador.tokens.atual.tipo in TYPES):#vardec
+            resultado = Analisador.analisarVarDec()
         return resultado
    
-    def analisarComandos():
-       # resultado=None
-        lista_comandos = []
-        if (Analisador.tokens.atual.tipo == OPEN_KEY):#{
-            Analisador.tokens.selecionarProximo()
-            resultado = Analisador.analisarComando()
-            if (Analisador.tokens.atual.tipo == SEMICOLON):#;;
-                Analisador.tokens.selecionarProximo()
-                lista_comandos.append(resultado)
-            else:
-                raise Exception("Erro: Comando Incorreto") 
+    # def analisarComandos():
+    #    # resultado=None
+    #     lista_comandos = []
+    #     if (Analisador.tokens.atual.tipo == OPEN_KEY):#{
+    #         Analisador.tokens.selecionarProximo()
+    #         resultado = Analisador.analisarComando()
+    #         if (Analisador.tokens.atual.tipo == SEMICOLON):#;;
+    #             Analisador.tokens.selecionarProximo()
+    #             lista_comandos.append(resultado)
+    #         else:
+    #             raise Exception("Erro: Comando Incorreto") 
 
-            while (Analisador.tokens.atual.tipo != CLOSE_KEY):
-                resultado = Analisador.analisarComando()
-                if (resultado == None):
-                    break
-                lista_comandos.append(resultado)
-                if (Analisador.tokens.atual.tipo == SEMICOLON):#;
-                    Analisador.tokens.selecionarProximo()
-                else:
-                    raise Exception("Erro: Formato de comando incorreto")
-            Analisador.tokens.selecionarProximo()
-            #if (Analisador.tokens.atual.tipo == CLOSE_KEY):#} 
-            return Comandos(None,lista_comandos)
-        else:
-            raise Exception("Erro: Formato de comando incorreto")
-        #return resultado
+    #         while (Analisador.tokens.atual.tipo != CLOSE_KEY):
+    #             resultado = Analisador.analisarComando()
+    #             if (resultado == None):
+    #                 break
+    #             lista_comandos.append(resultado)
+    #             if (Analisador.tokens.atual.tipo == SEMICOLON):#;
+    #                 Analisador.tokens.selecionarProximo()
+    #             else:
+    #                 raise Exception("Erro: Formato de comando incorreto")
+    #         Analisador.tokens.selecionarProximo()
+    #         #if (Analisador.tokens.atual.tipo == CLOSE_KEY):#} 
+    #         return Comandos(None,lista_comandos)
+    #     else:
+    #         raise Exception("Erro: Formato de comando incorreto")
+    #     #return resultado
 
     def analisarExpressao_Boolean():
         resultado = Analisador.analisarTermo_Boolean()
@@ -574,10 +595,10 @@ class Analisador:
                 resultado = [Analisador.analisarExpressao_Boolean()]
                 if (Analisador.tokens.atual.tipo == CLOSE_PAR):
                     Analisador.tokens.selecionarProximo()
-                    resultado.append(Analisador.analisarComandos())
+                    resultado.append(Analisador.analisarBloco())
                     if (Analisador.tokens.atual.tipo == ELSE):#Else
                         Analisador.tokens.selecionarProximo()
-                        resultado.append(Analisador.analisarComandos())
+                        resultado.append(Analisador.analisarBloco())
                         #resultado = If(IF,resultado)
                     
                     resultado = If(IF,resultado)
@@ -598,7 +619,7 @@ class Analisador:
                 resultado = Analisador.analisarExpressao_Boolean()
                 if (Analisador.tokens.atual.tipo == CLOSE_PAR):
                     Analisador.tokens.selecionarProximo()
-                    resultado = While(WHILE,[resultado, Analisador.analisarComandos()])
+                    resultado = While(WHILE,[resultado, Analisador.analisarBloco()])
                 else:
                     raise Exception("Erro: Parentesês não fecha")
             # resultado = Assign(WHILE,[resultado, Analisador.analisarComandos()])#WHILE LÁ EM CIMA
@@ -631,7 +652,9 @@ class Analisador:
                 Analisador.tokens.selecionarProximo()
                 if (Analisador.tokens.atual.tipo == CLOSE_PAR):
                         Analisador.tokens.selecionarProximo()
-                        resultado = Analisador.analisarBloco()
+                        resultado = Analisador.analisarBloco() #Quando arrumar o ponto e virgula do comando, habilitar essa linha e remove a de baixo
+                        #resultado = Analisador.analisarComandos()
+
                 else:
                     raise Exception("Erro: Parentesês não fecha na main")
             else:
@@ -641,29 +664,38 @@ class Analisador:
         return resultado
 
     def analisarBloco():
+        resultado =  Comandos(None,[])
         if (Analisador.tokens.atual.tipo == OPEN_KEY):#{
             Analisador.tokens.selecionarProximo()
-            resultado = Analisador.analisarComandos()
+            resultado.children.append(Analisador.analisarComando())
             while (Analisador.tokens.atual.tipo != CLOSE_KEY):#}
-                resultado = Analisador.analisarComandos()
+                resultado.children.append(Analisador.analisarComando())
                 if (resultado == None):
                     break
             Analisador.tokens.selecionarProximo()
         else:
             raise Exception("Erro: Formato de bloco de comando incorreto")
+        return resultado
 
     def analisarVarDec(): 
         resultado = Analisador.analisarTipo()
         if (Analisador.tokens.atual.tipo == IDENTIFIER):#{
+            resultado = VarDec(None,[resultado, Identifier(Analisador.tokens.atual.valor,IDENTIFIER)])
             Analisador.tokens.selecionarProximo()
             while (Analisador.tokens.atual.tipo != SEMICOLON):
                 if (Analisador.tokens.atual.tipo == COMMA):#;
                     Analisador.tokens.selecionarProximo()
+                    if (Analisador.tokens.atual.tipo == IDENTIFIER):
+                        resultado.children.append(Identifier(Analisador.tokens.atual.nome,IDENTIFIER))
+                        Analisador.tokens.selecionarProximo()
+                    else:
+                        raise Exception("Erro: Formato de vardec incorreto")
                 else:
                     raise Exception("Erro: Formato de vardec incorreto")
             Analisador.tokens.selecionarProximo()
         else:
             raise Exception("Erro: Formato de vardec incorreto")
+        return resultado
 
     def analisarTipo():
         if (Analisador.tokens.atual.tipo == INT):
@@ -684,7 +716,7 @@ class Analisador:
 def main():
     #try:
     Analisador.inicializar(inputCompiler)
-    raiz = Analisador.analisarComandos()
+    raiz = Analisador.analisarPrograma()
     raiz.Evaluate()
 
     #except Exception as erro:

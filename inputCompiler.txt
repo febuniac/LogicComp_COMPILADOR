@@ -1,18 +1,19 @@
-
-void  main()
+void main()
 {
-int z = 2;
-int y = 3;
+int z;
+int y;
+z = 2;
+y = 3;
 while(y<5){
 printf(1);
 y=y+1;
-};
+}
 if(z<3){
 printf(z);
 }
 
 else{
 printf(y);
-};
+}
  
 }
