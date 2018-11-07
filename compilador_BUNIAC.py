@@ -5,6 +5,7 @@ import re #importing regular expression
 #___________________________________________________________________________________________________
 #Tipos de Token (constantes)
 INT = "INT"
+FUNC = "FUNC"
 PLUS = "PLUS"
 MINUS = "MINUS"
 MULT = "MULT"
@@ -33,6 +34,7 @@ INT = "INT"
 CHAR = "CHAR"
 VOID = "VOID"
 COMMA="COMMA"
+FUNCCALL="FUNCCALL"
 TYPES = ["VOID","INT","CHAR"]
 
 #___________________________________________________________________________________________________
@@ -54,7 +56,7 @@ class SymbolTable:
         return SymbolTable.dictionary[str(nome)]
         #return self.nome
     def set_nome_valor_tipo(self,nome,valor,tipo):
-        SymbolTable.dictionary[str(nome)] = [int(valor),str(tipo)]
+        SymbolTable.dictionary[nome] = [valor,tipo]
         #self.nome = valor
 
 SymbolTable = SymbolTable()
@@ -224,6 +226,8 @@ class Type(Node):#Type Def
             return [0, CHAR]
         elif self.valor == 'VOID':
             return [None, VOID]#MNone é valor default de char
+        # elif self.valor == 'FUNC':
+        #     return [None, FUNC]#MNone é valor default de char
 
 class VarDec(Node):#Variable Declaration
     def __init__(self,valor,children):
@@ -233,7 +237,36 @@ class VarDec(Node):#Variable Declaration
         tipo=self.children[0].Evaluate()
         for child in self.children:
             SymbolTable.set_nome_valor_tipo(self.children[0].valor, tipo[0], tipo[1])#tipo [0] é o valor default e e tipo[1] é o tipo (ex: no nó Type return [0, CHAR])
-        
+
+class FuncDec(Node):
+    def __init__(self,valor,children):
+        self.valor = valor
+        self.children = children
+    def Evaluate(self):
+       SymbolTable.set_nome_valor_tipo(self.valor, self, FUNC)#valor é o nome da função e vai pegar ele mesmo e se colocar como valor(self)
+
+class FuncCall(Node):
+    def __init__(self,valor,children):
+        self.valor = valor
+        self.children = children
+    def Evaluate(self):
+        dec = SymbolTable.get_nome(self.valor)
+        #To Do: criar uma nova symboltable
+
+        # Criar uma variavel com o nome da funcao e tipo correto.
+        tipo = dec.children[0].Evaluate()
+        SymbolTable.set_nome_valor_tipo(self.valor, tipo[0], tipo[1])#cria uma nova symboltable
+        if len(self.children) != len(dec.children)-2:#se o num de argumentos passados for diferente
+            raise Exception("Erro: Número de argumentos inválidos")
+        # Declarar os argumentos da funcao 
+        for i in range(1, len(dec.children)-1):#primeiro é o tipo e ultimo é comandos (são ignorados)
+            dec.children[i].Evaluate() #declara os argumento
+            arg = self.children[i-1].Evaluate() # resolve os argumentos
+            SymbolTable.set_nome_valor_tipo(dec.children[i].valor, arg[0], arg[1]) #seta o valor dos argumentos arg[0]=valor e arg[1]=tipo
+
+        self.children[-1].Evaluate()#Executando o comandos    
+
+
 #___________________________________________________________________________________________________
 #Class Token
 class Token:
@@ -247,6 +280,167 @@ class Tokenizador:
         self.origem = origem#origem (string-codigo fonte tokenizado)-> conta matemática(entrada do usuario)
         self.posicao = 0#posição (integer-posição atual que tokenizador irá separar);
         self.atual = Token(EOF,EOF)#atual (token-ultimo token separado);
+    
+    def olhaProximo(self):
+        posicao = self.posicao
+
+        digito =""#Para numeros com mais de 1 digito
+        string=[]#Para palvras com mais de 1 char
+        #sempre aqui pois pega um token de cada vez
+        
+        while posicao < len(self.origem) and (self.origem[posicao] == " "):#limpando os espaços
+            self.posicao+=1#atualiza a posição
+        if posicao >= len(self.origem):#checa o tamanho da string de entrada
+            token = Token(EOF,'null')#Para o fim da string
+            self.atual=token#atualiza o atual
+        else:
+            #Tratando comentários
+            if ((self.origem[posicao])=="/"): #(p and q) ao negar (not p or not q) # era antes :  if ((self.origem[self.posicao])=="/" and (self.origem[self.posicao])=="*")
+                posicao+=1
+                if (self.origem[posicao])=="*":
+                    posicao+=1
+                    comentario = True #flag de comentarios
+                    while (comentario):
+                        while (self.origem[posicao]!="*"): # era antes :  while not (self.origem[self.posicao]=="*" and self.origem[self.posicao+1]=="/"):
+                            posicao+=1
+                            if(posicao >= len(self.origem)):
+                                raise Exception("Erro: Comentário sem fim")
+                        posicao+=1
+                        if(self.origem[posicao]=="/"):
+                            comentario = False    
+                            posicao+=1
+                else:
+                    token = Token(DIV,"/")
+                    self.atual=token
+                    return
+            
+            while posicao < len(self.origem) and (self.origem[posicao] == " "):#limpando os espaços
+                self.posicao+=1#atualiza a posição
+            #    if re.search('[0-9] +[0-9]', entrada):
+            #        raise Exception("Erro: Digito seguido de digito")
+            if posicao >= len(self.origem):#checa o tamanho da string de entrada
+                token = Token(EOF,'null')#Para o fim da string
+                self.atual=token#atualiza o atual
+            elif (self.origem[posicao]).isdigit():#se for digito
+               
+                while (posicao<(len(self.origem)) and (self.origem[posicao]).isdigit()):
+                    
+                    digito +=self.origem[posicao]
+                    posicao+=1
+
+                token = Token(INT,int(digito))
+                self.atual=token
+
+            elif (self.origem[posicao]).isalpha():#se for string
+
+                while(self.origem[posicao].isalpha() or self.origem[posicao].isdigit() or self.origem[posicao] == "_"):
+                    string.append(self.origem[posicao])
+                    posicao+=1
+                
+                fullString = ''.join(map(str, string))#converte a lista de chars para uma string
+                if(fullString == "printf"):    
+                    token = Token('PRINTF', fullString)
+                elif(fullString == "if"):    
+                    token = Token('IF', fullString)
+                elif(fullString == "else"):    
+                    token = Token('ELSE', fullString)
+                elif(fullString == "while"):    
+                    token = Token('WHILE', fullString)
+                elif(fullString == "scanf"):    
+                    token = Token('SCANF', fullString)
+                # elif(fullString == "main"):    
+                #     token = Token('MAIN', fullString)
+                elif(fullString == "int"):    
+                    token = Token('INT', fullString)
+                elif(fullString == "char"):    
+                    token = Token('CHAR', fullString) 
+                elif(fullString == "void"):    
+                    token = Token('VOID', fullString)   
+                else:
+                    token = Token('IDENTIFIER', fullString)
+                return token
+
+            elif self.origem[posicao] == '+':
+                token = Token(PLUS,"+")
+                posicao+=1
+                return token
+
+            elif self.origem[posicao] == '-':
+                token = Token(MINUS,"-")
+                posicao+=1
+                return token
+
+            elif self.origem[posicao] == '*':
+                token = Token(MULT,"*")
+                posicao+=1
+                return token
+           
+            elif self.origem[posicao] == '(':
+                token = Token(OPEN_PAR,"")
+                posicao+=1
+                return token
+            
+            elif self.origem[posicao] == ')':
+                token = Token(CLOSE_PAR,"")
+                posicao+=1
+                return token
+            
+            elif self.origem[posicao] == '{':
+                token = Token(OPEN_KEY,"")
+                posicao+=1
+                return token
+            
+            elif self.origem[posicao] == '}':
+                token = Token(CLOSE_KEY,"")
+                posicao+=1
+                return token
+            
+            elif self.origem[posicao] == '=':
+                token = Token(ASSIGN,"")
+                posicao+=1
+                return token
+
+            elif self.origem[posicao] == ';':
+                token = Token(SEMICOLON,"")
+                posicao+=1
+                return token
+            
+            elif self.origem[posicao] == '||':
+                token = Token(OR,"")
+                posicao+=1
+                return token
+            
+            elif self.origem[posicao] == '&&':
+                token = Token(AND,"")
+                posicao+=1
+                return token
+            
+            elif self.origem[posicao] == '>':
+                token = Token(BIGGER_THAN,"")
+                posicao+=1
+                return token
+            
+            elif self.origem[posicao] == '<':
+                token = Token(SMALLER_THAN,"")
+                self.posicao+=1
+                return token
+            
+            elif self.origem[posicao] == '==':
+                token = Token(EQUAL_TO,"")
+                posicao+=1
+                return token
+            
+            elif self.origem[posicao] == "!":
+                token = Token(NOT,"")
+                posicao+=1
+                return token
+           
+            elif self.origem[posicao] == ',':
+                token = Token(COMMA,"")
+                posicao+=1
+                return token
+
+
     #lê o próximo token e atualiza o atributo atual
     def selecionarProximo(self):
         digito =""#Para numeros com mais de 1 digito
@@ -315,8 +509,8 @@ class Tokenizador:
                     token = Token('WHILE', fullString)
                 elif(fullString == "scanf"):    
                     token = Token('SCANF', fullString)
-                elif(fullString == "main"):    
-                    token = Token('MAIN', fullString)
+                # elif(fullString == "main"):    
+                #     token = Token('MAIN', fullString)
                 elif(fullString == "int"):    
                     token = Token('INT', fullString)
                 elif(fullString == "char"):    
@@ -486,11 +680,13 @@ class Analisador:
             resultado = Identifier(Analisador.tokens.atual.valor, Analisador.tokens.atual.tipo)
             Analisador.tokens.selecionarProximo()
             if(Analisador.tokens.atual.tipo == ASSIGN):#=
-                op = Analisador.tokens.atual.tipo
-                Analisador.tokens.selecionarProximo()
-                resultado = Assign(op,[resultado, Analisador.analisarExpressao()])
+                if (Analisador.tokens.olhaProximo ==  OPEN_PAR):
+                    resultado = Analisador.analisarFuncCall()#funccall
+                else:
+                    op = Analisador.tokens.atual.tipo
+                    Analisador.tokens.selecionarProximo()
+                    resultado = Assign(op,[resultado, Analisador.analisarExpressao()])
             elif(Analisador.tokens.atual.tipo == SCANF):#scanf
-                
                 resultado = Analisador.analisarScanf()
             else:
                 raise Exception("Erro: Atribuição inválida (atribuição)")
@@ -515,34 +711,6 @@ class Analisador:
         elif (Analisador.tokens.atual.tipo in TYPES):#vardec
             resultado = Analisador.analisarVarDec()
         return resultado
-   
-    # def analisarComandos():
-    #    # resultado=None
-    #     lista_comandos = []
-    #     if (Analisador.tokens.atual.tipo == OPEN_KEY):#{
-    #         Analisador.tokens.selecionarProximo()
-    #         resultado = Analisador.analisarComando()
-    #         if (Analisador.tokens.atual.tipo == SEMICOLON):#;;
-    #             Analisador.tokens.selecionarProximo()
-    #             lista_comandos.append(resultado)
-    #         else:
-    #             raise Exception("Erro: Comando Incorreto") 
-
-    #         while (Analisador.tokens.atual.tipo != CLOSE_KEY):
-    #             resultado = Analisador.analisarComando()
-    #             if (resultado == None):
-    #                 break
-    #             lista_comandos.append(resultado)
-    #             if (Analisador.tokens.atual.tipo == SEMICOLON):#;
-    #                 Analisador.tokens.selecionarProximo()
-    #             else:
-    #                 raise Exception("Erro: Formato de comando incorreto")
-    #         Analisador.tokens.selecionarProximo()
-    #         #if (Analisador.tokens.atual.tipo == CLOSE_KEY):#} 
-    #         return Comandos(None,lista_comandos)
-    #     else:
-    #         raise Exception("Erro: Formato de comando incorreto")
-    #     #return resultado
 
     def analisarExpressao_Boolean():
         resultado = Analisador.analisarTermo_Boolean()
@@ -611,7 +779,6 @@ class Analisador:
         return resultado    
     def analisarWhile():
         #resultado=None
-        
         if (Analisador.tokens.atual.tipo == WHILE):#WHILE
             Analisador.tokens.selecionarProximo()
             if (Analisador.tokens.atual.tipo == OPEN_PAR):
@@ -644,24 +811,41 @@ class Analisador:
         else:
             raise Exception("Erro: Expressão inválida (scanf) ")
         return resultado 
-    def analisarPrograma():
-        resultado = Analisador.analisarTipo()
-        if (Analisador.tokens.atual.tipo == MAIN):#MAIN
-            Analisador.tokens.selecionarProximo()
-            if (Analisador.tokens.atual.tipo == OPEN_PAR):
-                Analisador.tokens.selecionarProximo()
-                if (Analisador.tokens.atual.tipo == CLOSE_PAR):
-                        Analisador.tokens.selecionarProximo()
-                        resultado = Analisador.analisarBloco() #Quando arrumar o ponto e virgula do comando, habilitar essa linha e remove a de baixo
-                        #resultado = Analisador.analisarComandos()
 
+    def analisarPrograma():
+        resultado = Comandos(None,[])
+        while(Analisador.tokens.atual.tipo != EOF):
+            tipoA = Analisador.analisarTipo()
+            if (Analisador.tokens.atual.tipo == IDENTIFIER):#MAIN
+                Func =FuncDec(IDENTIFIER,[tipoA])
+                Analisador.tokens.selecionarProximo()
+                if (Analisador.tokens.atual.tipo == OPEN_PAR):
+                    Analisador.tokens.selecionarProximo()
+                    if (Analisador.tokens.atual.tipo == CLOSE_PAR):
+                        Analisador.tokens.selecionarProximo()
+                        Func.children.append(Analisador.analisarBloco())
+
+                    else:
+                        tipoA = Analisador.analisarTipo()
+                        Analisador.tokens.selecionarProximo()
+                        if( Analisador.tokens.atual.tipo == IDENTIFIER):
+                            Analisador.tokens.selecionarProximo()
+                            while(Analisador.tokens.atual.tipo == COMMA):
+                                tipoA = Analisador.analisarTipo()
+                                Func.children.append(VarDec(None,[tipoA, Identifier(Analisador.tokens.atual.valor,IDENTIFIER)]))
+                                Analisador.tokens.selecionarProximo()
+                                if(Analisador.tokens.atual.tipo == IDENTIFIER):
+                                    Analisador.tokens.selecionarProximo()
+                                else:
+                                    Exception("Erro: Programa Incorreto")
+                        else:
+                            raise Exception("Erro: Programa Incorreto ")  
                 else:
-                    raise Exception("Erro: Parentesês não fecha na main")
+                    raise Exception("Erro: Programa Incorreto ")  
             else:
-                raise Exception("formato da main incorreto")
-        else:
-            raise Exception("Erro: Expressão inválida (main) ")
-        return resultado
+                raise Exception("Erro: Programa Incorreto ")  
+            resultado.children.append(Func)
+        return resultado  
 
     def analisarBloco():
         resultado =  Comandos(None,[])
@@ -712,6 +896,27 @@ class Analisador:
         else:
             raise Exception("Erro: Tipo não reconheciddo, só aceita INT,CHAR,VOID")
         return resultado        
+
+    def analisarFuncCall():
+        if (Analisador.tokens.atual.tipo == IDENTIFIER):
+            Analisador.tokens.selecionarProximo()
+            if (Analisador.tokens.atual.tipo == OPEN_PAR):
+                Analisador.tokens.selecionarProximo()
+                if (Analisador.tokens.atual.tipo == CLOSE_PAR):
+                    Analisador.tokens.selecionarProximo()
+                else:
+                    resultado = Analisador.analisarExpressao()
+                    Analisador.tokens.selecionarProximo()
+                    while(Analisador.tokens.atual.tipo == COMMA):
+                        resultado = Analisador.analisarExpressao()
+                        Analisador.tokens.selecionarProximo()
+            else:
+                Exception("Erro: FuncCall Incorreto")
+        else:
+            raise Exception("Erro: FuncCall Incorreto ")
+
+            
+
 #___________________________________________________________________________________________________
 def main():
     #try:
@@ -724,5 +929,45 @@ def main():
 
 if __name__== "__main__":
     main()
+
+
+
+
+
+
+# class Return(Node):
+#     def __init__(self,child,type):
+#         self.value = type
+#         self.child = child
+#     def Evaluate(self,ST):
+#         return self.child.Evaluate(ST)
+
+# class Declaration(Node):
+#     def __init__(self,type,child):
+#         self.value = type
+#         self.children = [child]
+#     def Evaluate(self, ST):
+#         ST.set_type(self.children[0].name, self.value)
+
+# class Commands(Node):
+#     def __init__(self,children,type,new_scope = False):
+#         self.value = type
+#         self.children = children
+#         self.new_scope = new_scope
+#     def Evaluate(self, ST):
+#         if self.new_scope:
+#             New_ST = SymbolTable(ST)
+#         else:
+#             New_ST = ST
+#         for child in self.children:
+#             res = child.Evaluate(New_ST)
+#             if res is not None:
+#                 result, type = res
+#                 if result != None and type != None:
+#                     if type == INT_TYPE:
+#                         return result, INT_TYPE
+
+
+
 
 
