@@ -49,17 +49,31 @@ with open('inputCompiler.txt') as entrada:
 #     inputCompiler.replace("  "," ")
 #___________________________________________________________________________________________________
 class SymbolTable:
-    dictionary = {}
-    def __init__(self,ancestor):
-        pass
+    # dictionary = {}
+    def __init__(self,ancestor=None):
+        self.ancestor = ancestor
+        self.dictionary= {}
     def get_nome(self,nome):
         #recursivamente olhar para todas as symboltables
-        return SymbolTable.dictionary[str(nome)]
+        temp=self #a propria symboltable
+        #criando a lista ligada
+        while (str(nome) not in temp.dictionary.keys()):
+            temp=temp.ancestor
+            if temp == None:
+                raise Exception("Erro:Variável Inexistente")
+        return temp.dictionary[str(nome)]
         #return self.nome
     def set_nome_valor_tipo(self,nome,valor,tipo):
-        SymbolTable.dictionary[nome] = [valor,tipo]
+        self.dictionary[nome] = [valor,tipo]
         #self.nome = valor
-
+    def retorna_var_ST(self, nome):
+        temp=self #a propria symboltable
+        #criando a lista ligada
+        while (str(nome) not in temp.dictionary.keys()):
+            temp=temp.ancestor
+            if temp == None:
+                raise Exception("Erro:Variável Inexistente")
+        return temp
 # SymbolTable = SymbolTable()
       
 class Node:
@@ -76,7 +90,7 @@ class Identifier(Node):#Identificador
         self.valor = valor #valor do nó
     def Evaluate(self,SymbTab):
         #global SymbolTable
-        return SymbolTable.get_nome(self.nome)#get do nome na symbol table
+        return SymbTab.get_nome(self.nome)#get do nome na symbol table
 
 
 class Assign(Node):#Assign Operation
@@ -85,8 +99,9 @@ class Assign(Node):#Assign Operation
         self.children = children
     def Evaluate(self,SymbTab):
         #gravando na symboltable o valor da atribuição
-        valor = self.children[1].Evaluate()
-        SymbolTable.set_nome_valor_tipo(self.children[0].nome, valor[0], valor[1])#valor dó nó é o nome da variavel 
+        valor = self.children[1].Evaluate(SymbTab)
+        ST = SymbTab.retorna_var_ST( self.children[0].nome)
+        ST.set_nome_valor_tipo(self.children[0].nome, valor[0], valor[1])#valor dó nó é o nome da variavel 
 
 
 class Comandos(Node):#Comandos Operation
@@ -95,8 +110,9 @@ class Comandos(Node):#Comandos Operation
         self.children = children
     def Evaluate(self,SymbTab):
         #print(self.children)
+        New_Symb= SymbolTable(SymbTab)
         for child in self.children:
-            child.Evaluate(SymbTab)#child percorre a lista de children e vai dando evaluate
+            child.Evaluate(New_Symb)#child percorre a lista de children e vai dando evaluate
         
         
 class BinOp(Node):#Binary Operation
@@ -236,41 +252,42 @@ class VarDec(Node):#Variable Declaration
     def Evaluate(self,SymbTab):
         tipo=self.children[0].Evaluate(SymbTab)
         for child in self.children:
-            SymbolTable.set_nome_valor_tipo(self.children[0].valor, tipo[0], tipo[1])#tipo [0] é o valor default e e tipo[1] é o tipo (ex: no nó Type return [0, CHAR])
+            SymbTab.set_nome_valor_tipo(self.valor, tipo[0], tipo[1])#tipo [0] é o valor default e e tipo[1] é o tipo (ex: no nó Type return [0, CHAR])
 
 class FuncDec(Node):
     def __init__(self,valor,children):
         self.valor = valor
         self.children = children
     def Evaluate(self,SymbTab):
-       SymbolTable.set_nome_valor_tipo(self.valor, self, FUNC)#valor é o nome da função e vai pegar ele mesmo e se colocar como valor(self)
+       SymbTab.set_nome_valor_tipo(self.valor, self, FUNC)#valor é o nome da função e vai pegar ele mesmo e se colocar como valor(self)
 
 class FuncCall(Node):
     def __init__(self,valor,children):
         self.valor = valor
         self.children = children
     def Evaluate(self,SymbTab):
-
-        dec = SymbolTable.get_nome(self.valor)[0]
-        #Criar uma nova symboltable
+        #Criar uma nova symboltable toda vez que tenho uma funcall
+        New_SymbTab = SymbolTable(SymbTab) #
+        #declaração
+        dec = New_SymbTab.get_nome(self.valor)[0]
         # Criar uma variavel com o nome da funcao e tipo correto.
-        tipo = dec.children[0].Evaluate(SymbTab)
-        SymbolTable.set_nome_valor_tipo(self.valor, tipo[0], tipo[1])#cria uma nova symboltable
+        tipo = dec.children[0].Evaluate(New_SymbTab)
+        New_SymbTab.set_nome_valor_tipo(self.valor, tipo[0], tipo[1])#cria uma nova symboltable
         if len(self.children) != len(dec.children)-2:#se o num de argumentos passados for diferente
             raise Exception("Erro: Número de argumentos inválidos")
         # Declarar os argumentos da função 
         for i in range(1, len(dec.children)-1):#primeiro é o tipo e ultimo é comandos (são ignorados)
-            dec.children[i].Evaluate(SymbTab) #declara os argumento
-            arg = self.children[i-1].Evaluate(SymbTab) # resolve os argumentos
-            SymbolTable.set_nome_valor_tipo(dec.children[i].valor, arg[0], arg[1]) #seta o valor dos argumentos arg[0]=valor e arg[1]=tipo
+            dec.children[i].Evaluate(New_SymbTab) #declara os argumento
+            arg = self.children[i-1].Evaluate(New_SymbTab) # resolve os argumentos
+            New_SymbTab.set_nome_valor_tipo(dec.children[i].valor, arg[0], arg[1]) #seta o valor dos argumentos arg[0]=valor e arg[1]=tipo
 
         for child in dec.children[-1].children:
             if type(child) is Return:
-                ret = child.Evaluate(SymbTab)
-                SymbolTable.set_nome_valor_tipo(self.valor,ret[0],ret[1])
+                ret = child.Evaluate(New_SymbTab)
+                New_SymbTab.set_nome_valor_tipo(self.valor,ret[0],ret[1])
                 return ret
             else:
-                child.Evaluate(SymbTab)
+                child.Evaluate(New_SymbTab)
 
         #dec.children[-1].Evaluate()#Executando o comandos    
 
@@ -978,13 +995,14 @@ class Analisador:
 
 #___________________________________________________________________________________________________
 def main():
-    #try:
-    Analisador.inicializar(inputCompiler)
-    raiz = Analisador.analisarPrograma()
-    raiz.Evaluate(SymbTab)
+    try:
+        Analisador.inicializar(inputCompiler)
+        raiz = Analisador.analisarPrograma()
+        SymbTab = SymbolTable()
+        raiz.Evaluate(SymbTab)
 
-    #except Exception as erro:
-    #    print(erro)
+    except Exception as erro:
+       print(erro)
 
 if __name__== "__main__":
     main()
