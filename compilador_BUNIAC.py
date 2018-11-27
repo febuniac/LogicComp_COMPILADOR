@@ -60,21 +60,21 @@ class SymbolTable:
         SymbolTable.dictionary[nome] = [valor,tipo]
         #self.nome = valor
 
-SymbolTable = SymbolTable()
+# SymbolTable = SymbolTable()
       
 class Node:
     # Constructor to create a new Node
     def __init__(self,valor,children):
-        self.valor = valor
+        self.valor = valor  
         self.children = children
-    def Evaluate(self):
+    def Evaluate(self,SymbTab):
         pass
 
 class Identifier(Node):#Identificador
     def __init__(self,nome,valor):#
         self.nome = nome
         self.valor = valor #valor do nó
-    def Evaluate(self):
+    def Evaluate(self,SymbTab):
         #global SymbolTable
         return SymbolTable.get_nome(self.nome)#get do nome na symbol table
 
@@ -83,7 +83,7 @@ class Assign(Node):#Assign Operation
     def __init__(self,valor,children):
         self.valor = valor
         self.children = children
-    def Evaluate(self):
+    def Evaluate(self,SymbTab):
         #gravando na symboltable o valor da atribuição
         valor = self.children[1].Evaluate()
         SymbolTable.set_nome_valor_tipo(self.children[0].nome, valor[0], valor[1])#valor dó nó é o nome da variavel 
@@ -93,19 +93,19 @@ class Comandos(Node):#Comandos Operation
     def __init__(self,valor,children):
         self.valor = valor
         self.children = children
-    def Evaluate(self):
+    def Evaluate(self,SymbTab):
         #print(self.children)
         for child in self.children:
-            child.Evaluate()#child percorre a lista de children e vai dando evaluate
+            child.Evaluate(SymbTab)#child percorre a lista de children e vai dando evaluate
         
         
 class BinOp(Node):#Binary Operation
     def __init__(self,valor,children):
         self.valor = valor
         self.children = children
-    def Evaluate(self):
-        val_esq=self.children[0].Evaluate()
-        val_dir=self.children[1].Evaluate()
+    def Evaluate(self,SymbTab):
+        val_esq=self.children[0].Evaluate(SymbTab)
+        val_dir=self.children[1].Evaluate(SymbTab)
         if(self.valor == 'PLUS'):
             if val_esq[1] == val_dir[1] and val_esq[1] == INT:
                 return [val_esq[0] + val_dir[0], INT]
@@ -155,15 +155,15 @@ class Printf(Node):
     def __init__(self,valor,children):
         self.valor = valor
         self.children = children
-    def Evaluate(self):
-        print(self.children.Evaluate()[0])
+    def Evaluate(self,SymbTab):
+        print(self.children.Evaluate(SymbTab)[0])
 
 class UnOp(Node):#Unary Operation
     def __init__(self,valor,children):
         self.valor = valor
         self.children = children
-    def Evaluate(self):
-        val_unico=self.children[0].Evaluate()
+    def Evaluate(self,SymbTab):
+        val_unico=self.children[0].Evaluate(SymbTab)
         if (self.valor == 'PLUS'):
             if val_unico[1] == INT:
                 return [+val_unico,INT]
@@ -183,43 +183,43 @@ class UnOp(Node):#Unary Operation
 class IntVal(Node):#Integer Value
     def __init__(self,valor):
         self.valor = valor
-    def Evaluate(self):
+    def Evaluate(self,SymbTab):
         return [self.valor, INT]
 
 class NoOp(Node):#No Operation
-    def Evaluate(self):
+    def Evaluate(self,SymbTab):
         return None
 
 class Scanf(Node):
     def __init__(self,valor):
         self.valor = valor
-    def Evaluate(self):
+    def Evaluate(self,SymbTab):
         return [input(""), INT]
 
 class If(Node):
     def __init__(self,valor,children):
         self.valor = valor
         self.children = children
-    def Evaluate(self):
-        val_esq=self.children[0].Evaluate()[0]
+    def Evaluate(self,SymbTab):
+        val_esq=self.children[0].Evaluate(SymbTab)[0]
         if val_esq == True:
-            self.children[1].Evaluate()
+            self.children[1].Evaluate(SymbTab)
         else:
-            self.children[2].Evaluate()
+            self.children[2].Evaluate(SymbTab)
 
 class While(Node):
     def __init__(self,valor,children):
         self.valor = valor
         self.children = children
-    def Evaluate(self):
-        while self.children[0].Evaluate()[0]==True:
-            self.children[1].Evaluate()
+    def Evaluate(self,SymbTab):
+        while self.children[0].Evaluate(SymbTab)[0]==True:
+            self.children[1].Evaluate(SymbTab)
 
 class Type(Node):#Type Def
     def __init__(self,valor):
         self.valor = valor
         self.children = None
-    def Evaluate(self):
+    def Evaluate(self,SymbTab):
         if (self.valor == 'INT'):
             return [0, INT]#0 é valor default de int
         elif (self.valor == 'CHAR'):
@@ -233,8 +233,8 @@ class VarDec(Node):#Variable Declaration
     def __init__(self,valor,children):
         self.valor = valor
         self.children = children
-    def Evaluate(self):
-        tipo=self.children[0].Evaluate()
+    def Evaluate(self,SymbTab):
+        tipo=self.children[0].Evaluate(SymbTab)
         for child in self.children:
             SymbolTable.set_nome_valor_tipo(self.children[0].valor, tipo[0], tipo[1])#tipo [0] é o valor default e e tipo[1] é o tipo (ex: no nó Type return [0, CHAR])
 
@@ -242,44 +242,44 @@ class FuncDec(Node):
     def __init__(self,valor,children):
         self.valor = valor
         self.children = children
-    def Evaluate(self):
+    def Evaluate(self,SymbTab):
        SymbolTable.set_nome_valor_tipo(self.valor, self, FUNC)#valor é o nome da função e vai pegar ele mesmo e se colocar como valor(self)
 
 class FuncCall(Node):
     def __init__(self,valor,children):
         self.valor = valor
         self.children = children
-    def Evaluate(self):
+    def Evaluate(self,SymbTab):
 
         dec = SymbolTable.get_nome(self.valor)[0]
         #Criar uma nova symboltable
         # Criar uma variavel com o nome da funcao e tipo correto.
-        tipo = dec.children[0].Evaluate()
+        tipo = dec.children[0].Evaluate(SymbTab)
         SymbolTable.set_nome_valor_tipo(self.valor, tipo[0], tipo[1])#cria uma nova symboltable
         if len(self.children) != len(dec.children)-2:#se o num de argumentos passados for diferente
             raise Exception("Erro: Número de argumentos inválidos")
         # Declarar os argumentos da função 
         for i in range(1, len(dec.children)-1):#primeiro é o tipo e ultimo é comandos (são ignorados)
-            dec.children[i].Evaluate() #declara os argumento
-            arg = self.children[i-1].Evaluate() # resolve os argumentos
+            dec.children[i].Evaluate(SymbTab) #declara os argumento
+            arg = self.children[i-1].Evaluate(SymbTab) # resolve os argumentos
             SymbolTable.set_nome_valor_tipo(dec.children[i].valor, arg[0], arg[1]) #seta o valor dos argumentos arg[0]=valor e arg[1]=tipo
 
         for child in dec.children[-1].children:
             if type(child) is Return:
-                ret = child.Evaluate()
+                ret = child.Evaluate(SymbTab)
                 SymbolTable.set_nome_valor_tipo(self.valor,ret[0],ret[1])
                 return ret
             else:
-                child.Evaluate()
+                child.Evaluate(SymbTab)
 
         #dec.children[-1].Evaluate()#Executando o comandos    
 
 class Return(Node):
     def __init__(self,children):
         self.children = children
-    def Evaluate(self):
+    def Evaluate(self,SymbTab):
         #dec = SymbolTable.get_nome(self.valor)[0]
-        return self.children[0].Evaluate()
+        return self.children[0].Evaluate(SymbTab)
 #___________________________________________________________________________________________________
 #Class Token
 class Token:
@@ -981,7 +981,7 @@ def main():
     #try:
     Analisador.inicializar(inputCompiler)
     raiz = Analisador.analisarPrograma()
-    raiz.Evaluate()
+    raiz.Evaluate(SymbTab)
 
     #except Exception as erro:
     #    print(erro)
