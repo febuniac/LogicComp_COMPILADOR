@@ -30,11 +30,11 @@ WHILE = "WHILE"
 SCANF = "SCANF"
 NOT = "NOT"
 MAIN = "MAIN"
-INT = "INT"
 CHAR = "CHAR"
 VOID = "VOID"
 COMMA="COMMA"
 FUNCCALL="FUNCCALL"
+RETURN="RETURN"
 TYPES = ["VOID","INT","CHAR"]
 
 #___________________________________________________________________________________________________
@@ -50,9 +50,10 @@ with open('inputCompiler.txt') as entrada:
 #___________________________________________________________________________________________________
 class SymbolTable:
     dictionary = {}
-    def __init__(self):
+    def __init__(self,ancestor):
         pass
     def get_nome(self,nome):
+        #recursivamente olhar para todas as symboltables
         return SymbolTable.dictionary[str(nome)]
         #return self.nome
     def set_nome_valor_tipo(self,nome,valor,tipo):
@@ -76,7 +77,6 @@ class Identifier(Node):#Identificador
     def Evaluate(self):
         #global SymbolTable
         return SymbolTable.get_nome(self.nome)#get do nome na symbol table
-
 
 
 class Assign(Node):#Assign Operation
@@ -250,23 +250,36 @@ class FuncCall(Node):
         self.valor = valor
         self.children = children
     def Evaluate(self):
-        dec = SymbolTable.get_nome(self.valor)
-        #To Do: criar uma nova symboltable
 
+        dec = SymbolTable.get_nome(self.valor)[0]
+        #Criar uma nova symboltable
         # Criar uma variavel com o nome da funcao e tipo correto.
         tipo = dec.children[0].Evaluate()
         SymbolTable.set_nome_valor_tipo(self.valor, tipo[0], tipo[1])#cria uma nova symboltable
         if len(self.children) != len(dec.children)-2:#se o num de argumentos passados for diferente
             raise Exception("Erro: Número de argumentos inválidos")
-        # Declarar os argumentos da funcao 
+        # Declarar os argumentos da função 
         for i in range(1, len(dec.children)-1):#primeiro é o tipo e ultimo é comandos (são ignorados)
             dec.children[i].Evaluate() #declara os argumento
             arg = self.children[i-1].Evaluate() # resolve os argumentos
             SymbolTable.set_nome_valor_tipo(dec.children[i].valor, arg[0], arg[1]) #seta o valor dos argumentos arg[0]=valor e arg[1]=tipo
 
-        self.children[-1].Evaluate()#Executando o comandos    
+        for child in dec.children[-1].children:
+            if type(child) is Return:
+                ret = child.Evaluate()
+                SymbolTable.set_nome_valor_tipo(self.valor,ret[0],ret[1])
+                return ret
+            else:
+                child.Evaluate()
 
+        #dec.children[-1].Evaluate()#Executando o comandos    
 
+class Return(Node):
+    def __init__(self,children):
+        self.children = children
+    def Evaluate(self):
+        #dec = SymbolTable.get_nome(self.valor)[0]
+        return self.children[0].Evaluate()
 #___________________________________________________________________________________________________
 #Class Token
 class Token:
@@ -289,7 +302,7 @@ class Tokenizador:
         #sempre aqui pois pega um token de cada vez
         
         while posicao < len(self.origem) and (self.origem[posicao] == " "):#limpando os espaços
-            self.posicao+=1#atualiza a posição
+            posicao+=1#atualiza a posição
         if posicao >= len(self.origem):#checa o tamanho da string de entrada
             token = Token(EOF,'null')#Para o fim da string
             self.atual=token#atualiza o atual
@@ -315,7 +328,7 @@ class Tokenizador:
                     return
             
             while posicao < len(self.origem) and (self.origem[posicao] == " "):#limpando os espaços
-                self.posicao+=1#atualiza a posição
+                posicao+=1#atualiza a posição
             #    if re.search('[0-9] +[0-9]', entrada):
             #        raise Exception("Erro: Digito seguido de digito")
             if posicao >= len(self.origem):#checa o tamanho da string de entrada
@@ -355,7 +368,9 @@ class Tokenizador:
                 elif(fullString == "char"):    
                     token = Token('CHAR', fullString) 
                 elif(fullString == "void"):    
-                    token = Token('VOID', fullString)   
+                    token = Token('VOID', fullString)
+                elif(fullString == "return"):    
+                    token = Token('RETURN', fullString)          
                 else:
                     token = Token('IDENTIFIER', fullString)
                 return token
@@ -516,7 +531,9 @@ class Tokenizador:
                 elif(fullString == "char"):    
                     token = Token('CHAR', fullString) 
                 elif(fullString == "void"):    
-                    token = Token('VOID', fullString)   
+                    token = Token('VOID', fullString)  
+                elif(fullString == "return"):    
+                    token = Token('RETURN', fullString) 
                 else:
                     token = Token('IDENTIFIER', fullString)
                 self.atual = token
@@ -647,10 +664,19 @@ class Analisador:
            else:
                 raise Exception("Erro: Parentesês não fecha") 
         elif (Analisador.tokens.atual.tipo == IDENTIFIER):
-            resultado = Identifier(Analisador.tokens.atual.valor, Analisador.tokens.atual.tipo)
-            Analisador.tokens.selecionarProximo()
+            #resultado = Identifier(Analisador.tokens.atual.valor, Analisador.tokens.atual.tipo)
+            #Analisador.tokens.selecionarProximo()
+            if (Analisador.tokens.olhaProximo().tipo == OPEN_PAR):
+               #Analisador.tokens.selecionarProximo()
+               resultado = Analisador.analisarFuncCall()#funccall
+            else:
+                resultado = Identifier(Analisador.tokens.atual.valor, Analisador.tokens.atual.tipo)
+                Analisador.tokens.selecionarProximo()
+        # elif (Analisador.tokens.atual.tipo == FUNCCALL):
+        #     Analisador.tokens.selecionarProximo()
+        #     resultado = Analisador.analisarFuncCall()#funccall
         else:
-             raise Exception("Erro: Expressão inválida (fator)")
+            raise Exception("Erro: Expressão inválida (fator)")
 
         return resultado
     def analisarPrintf():
@@ -673,19 +699,22 @@ class Analisador:
                 raise Exception("printf incorreto")
         else:
             raise Exception("Erro: Expressão inválida (printf) ")
-        return resultado    
+        return resultado
+
     def analisarAtribuicao():
         #resultado=None
         if (Analisador.tokens.atual.tipo == IDENTIFIER):#Atribuição
             resultado = Identifier(Analisador.tokens.atual.valor, Analisador.tokens.atual.tipo)
             Analisador.tokens.selecionarProximo()
             if(Analisador.tokens.atual.tipo == ASSIGN):#=
-                if (Analisador.tokens.olhaProximo ==  OPEN_PAR):
-                    resultado = Analisador.analisarFuncCall()#funccall
-                else:
-                    op = Analisador.tokens.atual.tipo
-                    Analisador.tokens.selecionarProximo()
-                    resultado = Assign(op,[resultado, Analisador.analisarExpressao()])
+                op = Analisador.tokens.atual.tipo
+                Analisador.tokens.selecionarProximo()                
+                # if (Analisador.tokens.olhaProximo().tipo ==  OPEN_PAR):
+                #     resultado = Analisador.analisarFuncCall()#funccall
+                # else:
+                #     op = Analisador.tokens.atual.tipo
+                #     Analisador.tokens.selecionarProximo()
+                resultado = Assign(op,[resultado, Analisador.analisarExpressao()])
             elif(Analisador.tokens.atual.tipo == SCANF):#scanf
                 resultado = Analisador.analisarScanf()
             else:
@@ -697,7 +726,7 @@ class Analisador:
         return resultado
    
     def analisarComando():
-        # resultado=None
+        resultado = None
         if (Analisador.tokens.atual.tipo == OPEN_KEY):#{
             resultado = Analisador.analisarBloco()
         elif (Analisador.tokens.atual.tipo == IDENTIFIER):#id
@@ -710,6 +739,22 @@ class Analisador:
             resultado = Analisador.analisarWhile()
         elif (Analisador.tokens.atual.tipo in TYPES):#vardec
             resultado = Analisador.analisarVarDec()
+        elif (Analisador.tokens.atual.tipo == RETURN):#return
+            Analisador.tokens.selecionarProximo()
+            if (Analisador.tokens.atual.tipo == OPEN_PAR): 
+                Analisador.tokens.selecionarProximo()
+                resultado = Return([Analisador.analisarExpressao()])
+                if (Analisador.tokens.atual.tipo == CLOSE_PAR): 
+                    Analisador.tokens.selecionarProximo()
+                    if (Analisador.tokens.atual.tipo == SEMICOLON): 
+                        Analisador.tokens.selecionarProximo()
+                    else:
+                        raise Exception("Erro: Return Incorreto")
+                else:
+                    raise Exception("Erro:Return Incorreto")
+            else:
+                raise Exception("Erro: Return Incorreto")
+            
         return resultado
 
     def analisarExpressao_Boolean():
@@ -817,7 +862,7 @@ class Analisador:
         while(Analisador.tokens.atual.tipo != EOF):
             tipoA = Analisador.analisarTipo()
             if (Analisador.tokens.atual.tipo == IDENTIFIER):#MAIN
-                Func =FuncDec(IDENTIFIER,[tipoA])
+                Func =FuncDec(Analisador.tokens.atual.valor,[tipoA])
                 Analisador.tokens.selecionarProximo()
                 if (Analisador.tokens.atual.tipo == OPEN_PAR):
                     Analisador.tokens.selecionarProximo()
@@ -827,24 +872,32 @@ class Analisador:
 
                     else:
                         tipoA = Analisador.analisarTipo()
-                        Analisador.tokens.selecionarProximo()
                         if( Analisador.tokens.atual.tipo == IDENTIFIER):
+                            Func.children.append(VarDec(Analisador.tokens.atual.valor,[tipoA, Identifier(Analisador.tokens.atual.valor,IDENTIFIER)]))
                             Analisador.tokens.selecionarProximo()
                             while(Analisador.tokens.atual.tipo == COMMA):
-                                tipoA = Analisador.analisarTipo()
-                                Func.children.append(VarDec(None,[tipoA, Identifier(Analisador.tokens.atual.valor,IDENTIFIER)]))
                                 Analisador.tokens.selecionarProximo()
+                                tipoA = Analisador.analisarTipo()
+                                #Analisador.tokens.selecionarProximo()
                                 if(Analisador.tokens.atual.tipo == IDENTIFIER):
+                                    Func.children.append(VarDec(Analisador.tokens.atual.valor,[tipoA, Identifier(Analisador.tokens.atual.valor,IDENTIFIER)]))
                                     Analisador.tokens.selecionarProximo()
                                 else:
                                     Exception("Erro: Programa Incorreto")
+                            if (Analisador.tokens.atual.tipo == CLOSE_PAR):
+                                Analisador.tokens.selecionarProximo()
+                                Func.children.append(Analisador.analisarBloco())  
+                            else:
+                                raise Exception("Erro: Programa Incorreto ")
                         else:
-                            raise Exception("Erro: Programa Incorreto ")  
+                            raise Exception("Erro: Programa Incorreto ")
                 else:
                     raise Exception("Erro: Programa Incorreto ")  
             else:
                 raise Exception("Erro: Programa Incorreto ")  
             resultado.children.append(Func)
+        # colocar um FuncCall em resultados (Para MAIN)
+        resultado.children.append(FuncCall("main",[]))
         return resultado  
 
     def analisarBloco():
@@ -864,7 +917,7 @@ class Analisador:
     def analisarVarDec(): 
         resultado = Analisador.analisarTipo()
         if (Analisador.tokens.atual.tipo == IDENTIFIER):#{
-            resultado = VarDec(None,[resultado, Identifier(Analisador.tokens.atual.valor,IDENTIFIER)])
+            resultado = VarDec(Analisador.tokens.atual.valor,[resultado, Identifier(Analisador.tokens.atual.valor,IDENTIFIER)])
             Analisador.tokens.selecionarProximo()
             while (Analisador.tokens.atual.tipo != SEMICOLON):
                 if (Analisador.tokens.atual.tipo == COMMA):#;
@@ -894,26 +947,32 @@ class Analisador:
             Analisador.tokens.selecionarProximo()
             resultado = Type(VOID)
         else:
-            raise Exception("Erro: Tipo não reconheciddo, só aceita INT,CHAR,VOID")
+            raise Exception("Erro: Tipo não reconhecido, só aceita INT,CHAR,VOID")
         return resultado        
 
     def analisarFuncCall():
+        resultado = None
         if (Analisador.tokens.atual.tipo == IDENTIFIER):
+            resultado = FuncCall(Analisador.tokens.atual.valor,[])
             Analisador.tokens.selecionarProximo()
             if (Analisador.tokens.atual.tipo == OPEN_PAR):
                 Analisador.tokens.selecionarProximo()
                 if (Analisador.tokens.atual.tipo == CLOSE_PAR):
                     Analisador.tokens.selecionarProximo()
                 else:
-                    resultado = Analisador.analisarExpressao()
-                    Analisador.tokens.selecionarProximo()
+                    resultado.children.append(Analisador.analisarExpressao())
                     while(Analisador.tokens.atual.tipo == COMMA):
-                        resultado = Analisador.analisarExpressao()
                         Analisador.tokens.selecionarProximo()
+                        resultado.children.append(Analisador.analisarExpressao())
+                    if (Analisador.tokens.atual.tipo == CLOSE_PAR):
+                        Analisador.tokens.selecionarProximo()
+                    else:
+                        Exception("Erro: FuncCall Incorreto")        
             else:
                 Exception("Erro: FuncCall Incorreto")
         else:
             raise Exception("Erro: FuncCall Incorreto ")
+        return resultado
 
             
 
@@ -929,43 +988,7 @@ def main():
 
 if __name__== "__main__":
     main()
-
-
-
-
-
-
-# class Return(Node):
-#     def __init__(self,child,type):
-#         self.value = type
-#         self.child = child
-#     def Evaluate(self,ST):
-#         return self.child.Evaluate(ST)
-
-# class Declaration(Node):
-#     def __init__(self,type,child):
-#         self.value = type
-#         self.children = [child]
-#     def Evaluate(self, ST):
-#         ST.set_type(self.children[0].name, self.value)
-
-# class Commands(Node):
-#     def __init__(self,children,type,new_scope = False):
-#         self.value = type
-#         self.children = children
-#         self.new_scope = new_scope
-#     def Evaluate(self, ST):
-#         if self.new_scope:
-#             New_ST = SymbolTable(ST)
-#         else:
-#             New_ST = ST
-#         for child in self.children:
-#             res = child.Evaluate(New_ST)
-#             if res is not None:
-#                 result, type = res
-#                 if result != None and type != None:
-#                     if type == INT_TYPE:
-#                         return result, INT_TYPE
+ 
 
 
 
