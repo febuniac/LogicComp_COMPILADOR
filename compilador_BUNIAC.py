@@ -189,7 +189,7 @@ class Assign(Node):#Assign Operation
         coloca.append(assign)
         # valor = self.children[1].Evaluate()
         # SymbolTable_n.set_nome_valor_tipo(self.children[0].nome, valor[0], valor[1])#valor dó nó é o nome da variavel 
-
+        return coloca
 
 class Comandos(Node):#comandos Operation
     def __init__(self,valor,children):
@@ -197,21 +197,22 @@ class Comandos(Node):#comandos Operation
         self.valor = valor
         self.children = children
     def Evaluate(self):
+        for child in self.children:
+            coloca = child.Evaluate() #child percorre a lista de children e vai dando evaluate
+            if type(child) is VarDec:
+                for line in coloca or []:
+                    Id.variables.append(line)  
+            else:  
+                for line in coloca or []:
+                    Id.commands.append(line)
+
+    def EvaluateBlock(self):
         r = []
         for child in self.children:
-            coloca = child.Evaluate()#child percorre a lista de children e vai dando evaluate
-            if True:
-                if type(child) is VarDec:
-                    for line in coloca or []:
-                        Id.variables.append(line)  
-                else:  
-                    for line in coloca or []:
-                        Id.commands.append(line)
-            else:
-                for line in coloca:
-                    r.append(line)
+            coloca = child.Evaluate() #child percorre a lista de children e vai dando evaluate
+            for line in coloca or []:
+                r.append(line)
         return r
-        
         
 class BinOp(Node):#Binary Operation
     def __init__(self,valor,children):
@@ -329,7 +330,7 @@ class IntVal(Node):#Integer Value
         self.identificador = Id.get_new_ID()
         self.valor = valor
     def Evaluate(self):
-        r = "MOV EBX, {0}".format([self.valor,INT])
+        r = "MOV EBX, {0}".format(self.valor)
         return [r]
         # return [self.valor, INT]
 
@@ -359,10 +360,10 @@ class If(Node):
         coloca += self.children[0].Evaluate()
         coloca.append("CMP EBX, False")
         coloca.append("JE ELSE_{0}".format(self.identificador))
-        coloca += self.children[1].Evaluate()
+        coloca += self.children[1].EvaluateBlock()
         coloca.append("JMP EXIT_{0}".format(self.identificador))
         coloca = ["ELSE_{0}".format(self.identificador)]
-        coloca += self.children[2].Evaluate()
+        coloca += self.children[2].EvaluateBlock()
         coloca.append("EXIT_{0}".format(self.identificador))
         return coloca
 
@@ -378,7 +379,7 @@ class While(Node):
         coloca += self.children[0].Evaluate()
         coloca.append("CMP EBX, False")
         coloca.append("JE EXIT_{0}".format(self.identificador))
-        coloca += self.children[1].Evaluate()
+        coloca += self.children[1].EvaluateBlock()
         coloca.append("JMP LOOP_{0}".format(self.identificador))
         coloca.append("EXIT_{0}".format(self.identificador))
         return coloca
