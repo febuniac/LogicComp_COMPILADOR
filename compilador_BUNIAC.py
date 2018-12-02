@@ -240,7 +240,7 @@ class BinOp(Node):#Binary Operation
             # else:
             #     raise Exception("Erro: tipos incompatíveis int MINUS")
         elif (self.valor == 'MULT'):
-            coloca.append("IMUL EAX, EBX")
+            coloca.append("IMUL EBX")
             coloca.append("MOV EBX, EAX")
             # if val_esq[1] == val_dir[1] and val_esq[1] == INT:
             #     return [val_esq[0] * val_dir[0], INT]
@@ -375,13 +375,13 @@ class While(Node):
     def Evaluate(self):
         # while self.children[0].Evaluate()[0]==True:
         #     self.children[1].Evaluate()
-        coloca = ["LOOP_{0}".format(self.identificador)]
+        coloca = ["LOOP_{0}:".format(self.identificador)]
         coloca += self.children[0].Evaluate()
         coloca.append("CMP EBX, False")
         coloca.append("JE EXIT_{0}".format(self.identificador))
         coloca += self.children[1].EvaluateBlock()
         coloca.append("JMP LOOP_{0}".format(self.identificador))
-        coloca.append("EXIT_{0}".format(self.identificador))
+        coloca.append("EXIT_{0}:".format(self.identificador) )
         return coloca
 
 class Type(Node):#Type Def
