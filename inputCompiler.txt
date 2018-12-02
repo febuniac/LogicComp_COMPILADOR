@@ -1,19 +1,11 @@
-void main()
-{
-int z;
-int y;
-z = 2;
-y = 3;
-while(y<5){
-printf(1);
-y=y+1;
-}
-if(z<3){
-printf(z);
-}
-
-else{
-printf(y);
-}
- 
+void main(){
+    int x;
+    int y;
+    x = 5;
+    y = 0;
+    if(x > y){
+        printf(x);
+    }else{
+        printf(y);
+    }
 }
