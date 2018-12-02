@@ -37,14 +37,11 @@ TYPES = ["VOID","INT","CHAR"]
 
 #___________________________________________________________________________________________________
 #Leitura de Arquivo
-#entrada = (str(input("Conta: ")))#entrada do usuário
+
 with open('inputCompiler.txt') as entrada:
   inputCompiler = entrada.read()
   inputCompiler = inputCompiler.replace("\n"," ")
   inputCompiler = inputCompiler.replace("   "," ")
-  #inputCompiler = inputCompiler.replace(" ","")
-#   while ("  ") in inputCompiler:
-#     inputCompiler.replace("  "," ")
 #___________________________________________________________________________________________________
 class Id:
     constants= [
@@ -145,10 +142,9 @@ class SymbolTable:
         pass
     def get_nome(self,nome):
         return SymbolTable.dictionary[str(nome)]
-        #return self.nome
     def set_nome_valor_tipo(self,nome,valor,tipo):
         SymbolTable.dictionary[str(nome)] = [int(valor),str(tipo)]
-        #self.nome = valor
+
 
 SymbolTable_n = SymbolTable()
       
@@ -167,15 +163,9 @@ class Identifier(Node):#Identificador
         self.nome = nome
         self.valor = valor #valor do nó
     def Evaluate(self):
-        #global SymbolTable
         r = "MOV EBX, [{0}_1]".format(self.nome)
         return [r]
-        #return SymbolTable.get_nome(self.nome)#get do nome na symbol table
 
-# if self.value == ASSIGNMENT:
-#             res = self.children[1].Evaluate(SymbolTable)
-#             assignment = "MOV [{0}_1], EBX".format(self.children[0].name)
-#             res.append(assignment)
 
 class Assign(Node):#Assign Operation
     def __init__(self,valor,children):
@@ -187,8 +177,6 @@ class Assign(Node):#Assign Operation
         coloca = self.children[1].Evaluate()
         assign = "MOV [{0}_1], EBX".format(self.children[0].nome)
         coloca.append(assign)
-        # valor = self.children[1].Evaluate()
-        # SymbolTable_n.set_nome_valor_tipo(self.children[0].nome, valor[0], valor[1])#valor dó nó é o nome da variavel 
         return coloca
 
 class Comandos(Node):#comandos Operation
@@ -228,67 +216,39 @@ class BinOp(Node):#Binary Operation
         if(self.valor == 'PLUS'):
             coloca.append("ADD EAX, EBX")
             coloca.append("MOV EBX, EAX")
-            # if val_esq[1] == val_dir[1] and val_esq[1] == INT:
-            #     return [val_esq[0] + val_dir[0], INT]
-            # else:
-            #     raise Exception("Erro: tipos incompatíveis int PLUS")
+           
         elif (self.valor == 'MINUS'):
             coloca.append("SUB EAX, EBX")
             coloca.append("MOV EBX, EAX")
-            # if val_esq[1] == val_dir[1] and val_esq[1] == INT:
-            #     return [val_esq[0] - val_dir[0], INT]
-            # else:
-            #     raise Exception("Erro: tipos incompatíveis int MINUS")
+ 
         elif (self.valor == 'MULT'):
             coloca.append("IMUL EBX")
             coloca.append("MOV EBX, EAX")
-            # if val_esq[1] == val_dir[1] and val_esq[1] == INT:
-            #     return [val_esq[0] * val_dir[0], INT]
-            # else:
-            #     raise Exception("Erro: tipos incompatíveis int MULT")
+           
         elif (self.valor == 'DIV'):
             coloca.append("IDIV EAX, EBX")
             coloca.append("MOV EBX, EAX")
 
-            # if val_esq[1] == val_dir[1] and val_esq[1] == INT:
-            #     return [val_esq[0] // val_dir[0], INT]
-            # else:
-            #     raise Exception("Erro: tipos incompatíveis int DIV")
         elif self.valor == 'OR':
             coloca.append("OR EAX, EBX")
             coloca.append("MOV EBX, EAX")
-            # if val_esq[1] == val_dir[1] and val_esq[1] == CHAR:
-            #     return [val_esq[0] or val_dir[0], CHAR]
-            # else:
-            #     raise Exception("Erro: tipos incompatíveis char OR")
+
         elif self.valor == 'AND':
                 coloca.append("AND EAX, EBX")
                 coloca.append("MOV EBX, EAX")
-            # if val_esq[1] == val_dir[1] and val_esq[1] == CHAR:
-            #     return [val_esq[0] and val_dir[0], CHAR]
-            # else:
-            #     raise Exception("Erro: tipos incompatíveis char AND")    
+    
         elif self.valor == 'BIGGER_THAN':
             coloca.append("CMP EAX, EBX")
             coloca.append("CALL binop_jg")
-            # if val_esq[1] == val_dir[1] and val_esq[1] == INT:
-            #     return [val_esq[0] > val_dir[0], CHAR]
-            # else:
-            #     raise Exception("Erro: tipos incompatíveis char BIGGER_THAN")
+
         elif self.valor == 'SMALLER_THAN':
             coloca.append("CMP EAX, EBX")
             coloca.append("CALL binop_jl")
-            # if val_esq[1] == val_dir[1] and val_esq[1] == INT:
-            #     return [val_esq[0] < val_dir[0], CHAR]
-            # else:
-            #     raise Exception("Erro: tipos incompatíveis char SMALLER_THAN")               
+             
         elif self.valor == 'EQUAL_TO':
             coloca.append("CMP EAX, EBX")
             coloca.append("CALL binop_je")
-            # if val_esq[1] == val_dir[1] and val_esq[1] == INT:
-            #     return [val_esq[0] == val_dir[0], CHAR]
-            # else:
-            #     raise Exception("Erro: tipos incompatíveis char EQUAL_TO") 
+
         return coloca              
 class Printf(Node):
     def __init__(self,valor,children):
@@ -300,8 +260,7 @@ class Printf(Node):
         coloca.append("PUSH EBX")
         coloca.append("CALL print")
         return coloca
-        #print(self.children.Evaluate()[0])
-
+       
 class UnOp(Node):#Unary Operation
     def __init__(self,valor,children):
         self.identificador = Id.get_new_ID()
@@ -332,8 +291,7 @@ class IntVal(Node):#Integer Value
     def Evaluate(self):
         r = "MOV EBX, {0}".format(self.valor)
         return [r]
-        # return [self.valor, INT]
-
+       
 class NoOp(Node):#No Operation
     def Evaluate(self):
         return None
@@ -351,11 +309,6 @@ class If(Node):
         self.valor = valor
         self.children = children
     def Evaluate(self):
-        # val_esq=self.children[0].Evaluate()[0]
-        # if val_esq == True:
-        #     self.children[1].Evaluate()
-        # else:
-        #     self.children[2].Evaluate()
         coloca = ["IF_{0}".format(self.identificador)]
         coloca += self.children[0].Evaluate()
         coloca.append("CMP EBX, False")
@@ -373,8 +326,6 @@ class While(Node):
         self.valor = valor
         self.children = children
     def Evaluate(self):
-        # while self.children[0].Evaluate()[0]==True:
-        #     self.children[1].Evaluate()
         coloca = ["LOOP_{0}:".format(self.identificador)]
         coloca += self.children[0].Evaluate()
         coloca.append("CMP EBX, False")
@@ -407,9 +358,6 @@ class VarDec(Node):#Variable Declaration
         for child in self.children:
             r = ["{0}_1 RESD 1".format(self.children[1].nome)]
         return r
-        # tipo=self.children[0].Evaluate()
-        # for child in self.children:
-        #     SymbolTable_n.set_nome_valor_tipo(self.children[0].valor, tipo[0], tipo[1])#tipo [0] é o valor default e e tipo[1] é o tipo (ex: no nó Type return [0, CHAR])
         
 #___________________________________________________________________________________________________
 #Class Token
@@ -903,5 +851,6 @@ def main():
 
 if __name__== "__main__":
     main()
+
 
 
