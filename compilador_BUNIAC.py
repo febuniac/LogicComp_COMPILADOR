@@ -60,7 +60,7 @@ class Id:
     ]
 
     variables = [
-        "segment .bss ; variables"
+        "segment .bss ; variaveis"
     ]
 
     functions = [
@@ -402,7 +402,9 @@ class VarDec(Node):#Variable Declaration
         self.valor = valor
         self.children = children
     def Evaluate(self):
-        r = ["{0}_1 RESD 1".format(self.children[0].valor)]
+        tipo=self.children[0].Evaluate()
+        for child in self.children:
+            r = ["{0}_1 RESD 1".format(self.children[1].nome)]
         return r
         # tipo=self.children[0].Evaluate()
         # for child in self.children:

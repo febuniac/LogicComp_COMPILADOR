@@ -7,9 +7,9 @@ STDOUT equ 1
 True equ 1
 False equ 0
 segment .data
-segment .bss ; variables
-INT_1 RESD 1
-INT_1 RESD 1
+segment .bss ; variaveis
+x_1 RESD 1
+y_1 RESD 1
 res RESB 1
 section .text
 global _start
@@ -61,28 +61,14 @@ binop_exit :
 RET
 _start :
 ; codigo gerado pelo compilador
-MOV EBX, [1, 'INT']
+MOV EBX, [x_1]
 PUSH EBX
 CALL print
-LOOP_65
 MOV EBX, [y_1]
 PUSH EBX
-MOV EBX, [5, 'INT']
-POP EAX
-CMP EAX, EBX
-CALL binop_jl
-CMP EBX, False
-JE EXIT_65
-JMP LOOP_65
+CALL print
+ELSE_65
 EXIT_65
-MOV EBX, [z_1]
-PUSH EBX
-CALL print
-MOV EBX, [y_1]
-PUSH EBX
-CALL print
-ELSE_96
-EXIT_96
 ; interrupcao de saida
 MOV EAX, 1
 INT 0x80
