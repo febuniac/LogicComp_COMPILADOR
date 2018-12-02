@@ -889,13 +889,14 @@ class Analisador:
         return resultado        
 #___________________________________________________________________________________________________
 def main():
-    #try:
-    Analisador.inicializar(inputCompiler)
-    raiz = Analisador.analisarPrograma()
-    raiz.Evaluate()
+    try:
+        Analisador.inicializar(inputCompiler)
+        raiz = Analisador.analisarPrograma()
+        raiz.Evaluate()
+        Id.writecodeAssembly()
 
-    #except Exception as erro:
-    #    print(erro)
+    except Exception as erro:
+       print(erro)
 
 if __name__== "__main__":
     main()
